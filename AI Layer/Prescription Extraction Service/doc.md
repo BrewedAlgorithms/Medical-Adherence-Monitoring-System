@@ -119,3 +119,83 @@ The Backend connects to this service via Socket.IO at `http://localhost:3002`. I
 - The service expects high-quality images of prescriptions
 - Response times depend on Gemini API processing speed (typically 2-10 seconds)
 - Error responses include descriptive messages for debugging 
+
+---
+
+# 🖥️ System Architecture (Prescription Extraction Service)
+
+```mermaid
+graph TD
+    Backend["Backend Server"]
+    Extraction["Prescription Extraction Service"]
+    Gemini["Google Gemini AI (Multimodal)"]
+    Cloudinary["Cloudinary (Image Storage)"]
+
+    Backend -- "Socket.IO (prescription_extraction)" --> Extraction
+    Extraction -- "Download Image" --> Cloudinary
+    Extraction -- "API Call (Image+Prompt)" --> Gemini
+    Gemini -- "Structured Data" --> Extraction
+    Extraction -- "Socket.IO (prescription_extracted)" --> Backend
+```
+
+**Explanation:**
+- The backend uploads prescription images to Cloudinary and notifies the extraction service via Socket.IO.
+- The extraction service downloads the image, sends it to Gemini AI, and returns structured data to the backend.
+
+---
+
+# 🔄 Prescription Extraction Sequence
+
+```mermaid
+sequenceDiagram
+    participant Backend
+    participant Extraction as Extraction Service
+    participant Cloudinary
+    participant Gemini
+    Backend->>Cloudinary: Upload prescription image
+    Backend->>Extraction: Emit 'prescription_extraction' (image URL)
+    Extraction->>Cloudinary: Download image
+    Extraction->>Gemini: Send image + prompt
+    Gemini-->>Extraction: Extracted JSON data
+    Extraction->>Backend: Emit 'prescription_extracted' (structured data)
+```
+
+**Explanation:**
+- The backend emits a Socket.IO event with the image URL.
+- The extraction service downloads the image, sends it to Gemini, and emits the extracted data back.
+
+---
+
+# 🗂️ Extracted Data Schema
+
+```mermaid
+classDiagram
+    class Prescription {
+      int doctor_id
+      string start_date
+      string end_date
+      MedicineCourse[] medicineCourses
+    }
+    class MedicineCourse {
+      string medicine_name
+      string start_date
+      string end_date
+      string frequency
+      string medtype
+      bool is_pill
+      int dosage
+    }
+    Prescription o-- MedicineCourse
+```
+
+**Explanation:**
+- The extracted data includes doctor ID, course dates, and a list of medicine courses with detailed fields.
+
+---
+
+# 🧭 Integration Points
+- **Backend:** Sends image URLs and receives structured data via Socket.IO events.
+- **Gemini AI:** Processes images and returns structured prescription data.
+- **Cloudinary:** Stores prescription images for extraction.
+
+--- 

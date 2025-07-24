@@ -18,10 +18,92 @@ The AI Assistant Service is an AI-powered microservice that provides intelligent
 - **google-generativeai**: Google Gemini AI API client
 - **uvicorn**: ASGI server for FastAPI
 
-## System Architecture
+---
+
+# 🖥️ System Architecture (AI Assistant Service)
+
+```mermaid
+graph TD
+    User["User (App/Web)"]
+    Backend["Backend Server"]
+    AIAssistant["AI Assistant Service (FastAPI)"]
+    Gemini["Google Gemini AI"]
+    DB["MySQL (User/Medication DB)"]
+
+    User -- "REST API /chat" --> Backend
+    Backend -- "HTTP (JWT)" --> AIAssistant
+    AIAssistant -- "API Calls" --> Gemini
+    AIAssistant -- "DB Adapter" --> DB
+    Gemini -- "LLM Response" --> AIAssistant
+    AIAssistant -- "Response" --> Backend
+    Backend -- "Response" --> User
 ```
-[Frontend Client] <--HTTP--> [Backend Server] <--HTTP--> [AI Assistant Service] <--API--> [Google Gemini AI]
+
+**Explanation:**
+- The user interacts with the app, which sends chat requests to the backend.
+- The backend forwards these to the AI Assistant Service, which authenticates, processes, and routes the request.
+- The service may query the database for user/medication context and calls Gemini AI for LLM responses.
+- The response is returned to the user via the backend.
+
+---
+
+# 🔄 Chat Flow Sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Backend
+    participant AIService as AI Assistant Service
+    participant Gemini
+    participant DB
+    User->>Backend: Send chat message (with JWT)
+    Backend->>AIService: Forward message & user info
+    AIService->>AIService: Authenticate JWT
+    AIService->>AIService: Classify intent
+    AIService->>AIService: Extract entities (if update)
+    AIService->>DB: Fetch user/medication data
+    AIService->>Gemini: Send prompt/context
+    Gemini-->>AIService: LLM response
+    AIService->>Backend: Return formatted response
+    Backend->>User: Deliver AI reply
 ```
+
+**Explanation:**
+- The service authenticates the user, classifies the message intent, extracts entities if needed, fetches context, and queries Gemini AI for a response.
+- The result is formatted and returned to the user.
+
+---
+
+# 🗂️ Medication Update Data Flow
+
+```mermaid
+graph LR
+    UserMsg["User Message: 'Change my Azithromycin to evening'"]
+    Classifier["Intent Classifier"]
+    EntityExtractor["Entity Extractor"]
+    DB["Medication DB"]
+    LLM["Gemini LLM"]
+    Formatter["Response Formatter"]
+    UserMsg --> Classifier
+    Classifier -- "Update Intent" --> EntityExtractor
+    EntityExtractor -- "Extracted: {Azithromycin, evening}" --> DB
+    DB -- "Update Schedule" --> DB
+    DB -- "Updated Context" --> LLM
+    LLM -- "Generate Confirmation" --> Formatter
+    Formatter -- "Reply" --> UserMsg
+```
+
+**Explanation:**
+- For update requests, the service extracts medicine and timing, updates the DB, and confirms via LLM.
+
+---
+
+# 🧭 Integration Points
+- **Backend:** Receives and forwards user chat, handles authentication.
+- **Gemini AI:** Provides LLM responses for chat and confirmations.
+- **Database:** Stores and retrieves user medication data for context and updates.
+
+---
 
 ## Key Components
 

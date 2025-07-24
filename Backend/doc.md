@@ -93,3 +93,106 @@ The application uses moment-timezone with 'Asia/Kolkata' as the default timezone
 - JWT used for authentication
 - Body parsing with size limits
 - Static routes for specific folders only 
+
+---
+
+# 🖥️ System Architecture (Backend)
+
+```mermaid
+graph TD
+    Frontend["Frontend (Flutter App)"]
+    Backend["Backend (Express.js)"]
+    DB["MySQL Database"]
+    AI["AI Layer (Assistant & Extraction)"]
+    Twilio["Twilio SMS"]
+    Pillbox["Smart Pillbox (Embedded)"]
+
+    Frontend -- "REST API/WebSocket" --> Backend
+    Backend -- "DB Queries" --> DB
+    Backend -- "HTTP/Socket" --> AI
+    Backend -- "SMS API" --> Twilio
+    Backend -- "WebSocket" --> Pillbox
+    Pillbox -- "Status/Events" --> Backend
+```
+
+**Explanation:**
+- The backend acts as the central hub, connecting frontend, AI services, Twilio, the database, and embedded devices.
+
+---
+
+# 🔐 Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Twilio
+    participant DB
+    User->>Frontend: Enter phone number
+    Frontend->>Backend: POST /auth/request-otp
+    Backend->>Twilio: Send OTP SMS
+    Twilio-->>User: Deliver OTP
+    User->>Frontend: Enter OTP
+    Frontend->>Backend: POST /auth/verify-otp
+    Backend->>DB: Check/Create user
+    Backend-->>Frontend: JWT token
+    Frontend-->>User: Access granted
+```
+
+**Explanation:**
+- The backend manages OTP-based authentication using Twilio and issues JWT tokens for secure access.
+
+---
+
+# ⏰ Medication Reminder & Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant Cron as CronJob
+    participant Backend
+    participant DB
+    participant WebSocket
+    participant Twilio
+    participant Frontend
+    Cron->>Backend: Trigger scheduled reminder
+    Backend->>DB: Fetch user/course info
+    Backend->>WebSocket: Send real-time notification
+    Backend->>Twilio: Send SMS reminder
+    WebSocket-->>Frontend: Push notification
+    Twilio-->>Frontend: SMS notification
+    Frontend-->>User: Reminder displayed
+```
+
+**Explanation:**
+- Cron jobs trigger reminders, which are sent via WebSocket (real-time) and Twilio (SMS) to users.
+
+---
+
+# 🔄 WebSocket Real-Time Flow
+
+```mermaid
+sequenceDiagram
+    participant Backend
+    participant Frontend
+    participant Pillbox
+    Backend->>Frontend: Send medication schedule
+    Backend->>Pillbox: Send schedule/commands
+    Pillbox->>Backend: Intake event/status
+    Backend->>Frontend: Update adherence/status
+    Frontend-->>User: Show updated status
+```
+
+**Explanation:**
+- The backend uses WebSocket to synchronize medication schedules and intake events between the app and the smart pillbox.
+
+---
+
+# 🧭 Integration Points
+- **Frontend:** Consumes REST API and WebSocket for all user features.
+- **AI Layer:** Receives chat and prescription extraction requests via HTTP/Socket.
+- **Twilio:** Sends OTPs and reminders via SMS.
+- **Embedded C (Pillbox):** Communicates via WebSocket for real-time medication tracking.
+- **Database:** Stores all persistent data (users, courses, intakes, etc.).
+
+--- 

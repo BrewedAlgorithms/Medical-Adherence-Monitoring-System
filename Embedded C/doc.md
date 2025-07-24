@@ -104,3 +104,85 @@ ESP32 ---- LED1 (GPIO2)
 - Ensure proper power supply for the ESP32 (3.3V)
 - Use pull-up resistors for hall sensors if not using internal pull-ups
 - Configure the WebSocket server address before deployment 
+
+---
+
+# 🖥️ System Architecture (Smart Pillbox)
+
+```mermaid
+graph TD
+    User["User (Patient)"]
+    Pillbox["Smart Pillbox (ESP32)"]
+    Backend["Backend Server"]
+    App["Mobile App"]
+
+    Backend -- "WebSocket" --> Pillbox
+    Pillbox -- "Intake Events" --> Backend
+    App -- "Bluetooth (optional)" --> Pillbox
+    Backend -- "REST API/WebSocket" --> App
+    User -- "Physical Interaction" --> Pillbox
+```
+
+**Explanation:**
+- The pillbox connects to the backend via WebSocket for real-time reminders and event reporting. The user interacts physically, and optionally via the app (Bluetooth).
+
+---
+
+# 🔄 Pillbox Operation Flowchart
+
+```mermaid
+flowchart TD
+    Start([Start])
+    WiFi["Connect to WiFi"]
+    WS["Connect to Backend (WebSocket)"]
+    WaitRem["Wait for Reminder"]
+    RemActive{Reminder Active?}
+    Monitor["Monitor Hall Sensors"]
+    Button["Check Button Press"]
+    Opened{Compartment Opened?}
+    LEDOff["Turn Off LED"]
+    Report["Send Intake Event to Backend"]
+    End([End])
+
+    Start --> WiFi --> WS --> WaitRem
+    WaitRem --> RemActive
+    RemActive -- No --> WaitRem
+    RemActive -- Yes --> Monitor
+    Monitor --> Opened
+    Opened -- No --> Button
+    Opened -- Yes --> LEDOff --> Report --> WaitRem
+    Button --> WaitRem
+```
+
+**Explanation:**
+- The firmware waits for reminders, monitors sensors, and reports intake events to the backend.
+
+---
+
+# 📨 Intake Event Reporting Sequence
+
+```mermaid
+sequenceDiagram
+    participant Pillbox
+    participant Backend
+    participant App
+    Pillbox->>Backend: WebSocket connect
+    Backend->>Pillbox: Send active compartments
+    Pillbox->>User: Activate LEDs/Buzzer
+    User->>Pillbox: Open compartment lid
+    Pillbox->>Backend: Send opened compartment event
+    Backend->>App: Update adherence status
+    App-->>User: Show updated status
+```
+
+**Explanation:**
+- The pillbox receives reminders, activates indicators, detects intake, and reports events to the backend, which updates the app.
+
+---
+
+# 🧭 Integration Points
+- **Backend:** Real-time WebSocket for reminders and event reporting.
+- **Mobile App:** Optionally connects via Bluetooth for configuration or direct control.
+- **User:** Interacts physically with the pillbox for medication intake.
+
+--- 

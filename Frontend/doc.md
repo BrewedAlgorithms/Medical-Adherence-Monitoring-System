@@ -63,3 +63,105 @@ The app uses socket_io_client to establish real-time communication with the back
 - The project uses Material Design
 - Custom assets should be placed in the assets/images/ directory
 - The codebase follows Flutter's recommended linting rules (flutter_lints package) 
+
+---
+
+# 🖥️ System Architecture (Frontend)
+
+```mermaid
+graph TD
+    User["User (Patient/Doctor)"]
+    App["Flutter App"]
+    API["API Provider"]
+    State["Riverpod Providers"]
+    Backend["Backend Server"]
+    Socket["WebSocket Client"]
+    AI["AI Layer"]
+
+    User -- "UI Interaction" --> App
+    App -- "State Updates" --> State
+    App -- "API Calls" --> API
+    API -- "HTTP" --> Backend
+    App -- "WebSocket Events" --> Socket
+    Socket -- "Real-time" --> Backend
+    App -- "AI Chat/Extraction" --> AI
+```
+
+**Explanation:**
+- The app interacts with the backend via REST API and WebSocket, manages state with Riverpod, and integrates with the AI layer for chat and extraction.
+
+---
+
+# 🗺️ Main Screen Navigation Flow
+
+```mermaid
+flowchart TD
+    Logo["Logo Screen"] --> OTP["OTP Screen"]
+    OTP --> Dashboard["Dashboard Screen"]
+    Dashboard --> Pillbox["Pillbox Screen"]
+    Dashboard --> Medi["Medication Screen"]
+    Dashboard --> Profile["Profile Screen"]
+    Dashboard --> Rewards["Rewards Screen"]
+    Dashboard --> Chat["Chat Screen"]
+    Dashboard --> History["History Screen"]
+    Dashboard --> AddRx["Add Prescription Screen"]
+    Dashboard --> Book["Book Screen"]
+    Dashboard --> Tab["Tab Screen"]
+```
+
+**Explanation:**
+- The main navigation starts from the logo and OTP screens, then routes to the dashboard and its feature screens.
+
+---
+
+# 🔄 Provider/State Management Flow
+
+```mermaid
+graph TD
+    UI["UI Widgets"]
+    Provider["Riverpod Providers"]
+    API["API/Data Layer"]
+    State["App State"]
+
+    UI -- "Read/Watch" --> Provider
+    Provider -- "Fetch/Update" --> API
+    API -- "HTTP/WebSocket" --> Backend
+    Provider -- "Update" --> State
+    State -- "Notify" --> UI
+```
+
+**Explanation:**
+- UI widgets interact with Riverpod providers, which fetch/update data via API and manage app state.
+
+---
+
+# 📡 API & Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant Backend
+    participant Socket
+    participant User
+    App->>API: REST API call (e.g., login, fetch courses)
+    API->>Backend: HTTP request
+    Backend-->>API: Response
+    API-->>App: Data update
+    Backend->>Socket: Emit notification (reminder)
+    Socket-->>App: Receive real-time event
+    App-->>User: Show notification
+```
+
+**Explanation:**
+- The app uses REST API for data and WebSocket for real-time notifications, updating the UI accordingly.
+
+---
+
+# 🧭 Integration Points
+- **Backend:** REST API and WebSocket for all data and notifications.
+- **AI Layer:** API calls for chat and prescription extraction.
+- **Riverpod:** State management for all UI and business logic.
+- **Device Features:** Camera, image picker, and local storage for enhanced UX.
+
+--- 
