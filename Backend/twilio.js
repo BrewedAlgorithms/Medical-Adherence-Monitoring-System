@@ -4,7 +4,20 @@ require('dotenv').config();
 // Twilio configuration
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = new twilio(accountSid, authToken);
+
+// Only initialize Twilio client if credentials are provided
+let client = null;
+if (accountSid && authToken && accountSid.startsWith('AC')) {
+    try {
+        client = new twilio(accountSid, authToken);
+        console.log('Twilio client initialized successfully');
+    } catch (error) {
+        console.warn('Failed to initialize Twilio client:', error.message);
+        client = null;
+    }
+} else {
+    console.log('Twilio credentials not provided or invalid. WhatsApp notifications will be disabled.');
+}
 
 /**
  * Sends an OTP message via WhatsApp using Twilio
@@ -14,6 +27,13 @@ const client = new twilio(accountSid, authToken);
  */
 const sendMessage = async (msg, phone) => {
     console.log('Sending message to', phone);
+    
+    // Check if Twilio client is available
+    if (!client) {
+        console.log('Twilio not configured. Message would be sent to:', phone, 'Content:', msg);
+        return { success: false, message: 'Twilio not configured' };
+    }
+    
     try {
         const message = await client.messages.create({
             from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
