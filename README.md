@@ -51,10 +51,10 @@ HealthMobi is a comprehensive healthcare platform that bridges the gap between d
 
 ### Frontend Components
 
-- **React Native**: Cross-platform mobile application
+- **Flutter**: Cross-platform mobile application
 - **Modern UI/UX**: Intuitive user interface for all features
 - **Local Storage**: Caching for offline functionality
-- **Push Notifications**: Real-time alerts for medication reminders
+- **Twillio Notifications**: Real-time alerts for medication reminders
 
 ### Embedded Systems
 
