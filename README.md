@@ -1,17 +1,15 @@
 # 🩺 HealthMobi
 
-An innovative healthcare management system designed to help patients track medication intake, connect with doctors, and maintain a healthier lifestyle.
+A patient-centric medication adherence ecosystem that empowers patients by:
+- Providing smart reminders for medication intake.
+- Enabling seamless tracking of their progress.
+- Delivering personalized motivation and support to ensure consistent medication adherence.
 
-**💻 Developed by _Gameis Alice_ Team — PICT College**
-
-- **Durgesh Khade**
-- **Paras Thakur**
-- **Neha Diwan**
-- **Prajwal Chinchmalatpure**
-
-## 🌟 Overview
-
-HealthMobi is a comprehensive healthcare platform that bridges the gap between doctors and patients. The application helps users manage their medication courses, receive timely reminders, track medication adherence, and maintain communication with healthcare providers.
+> **💻 Developed by Gameis Alice Team from PICT College**
+- PRAJWAL CHINCHMALATPURE
+- DURGESH KHADE
+- PARAS THAKUR
+- NEHA DIWAN
 
 ## ✨ Key Features
 
@@ -19,18 +17,15 @@ HealthMobi is a comprehensive healthcare platform that bridges the gap between d
 - **💊 Medication Management**: Create and track medicine courses with customizable schedules
 - **⏰ Smart Notifications**: Automated reminders for medicine intake
 - **📊 Adherence Tracking**: Visual matrix to track medication compliance over time
-- **🏥 Doctor-Patient Connection**: Direct communication between doctors and patients
 - **📱 Real-time Updates**: WebSocket-based instant notifications and updates
-- **🌐 Multi-language Support**: Available in English, Hindi, and Marathi
 
 ## 🤝 Interactive Features
 
-- **📲 Medication Intake Confirmation**: Interactive push notifications allow patients to confirm medication intake with a single tap
-- **📅 Visual Calendar**: Interactive calendar view showing medication schedule and adherence history
+- **📲 Medication Intake Confirmation**: Interactive notifications and allow patients to confirm medication intake with a single press
 - **🔔 Smart Reminders**: Context-aware notifications that adjust timing based on user behavior patterns
 - **💬 Intelligent AI Assistant**: Intuitive AI-powered chat system that allows patients to effortlessly update meal times, medication schedules, and health routines with natural language commands
 - **📊 Progress Visualization**: Interactive charts showing adherence trends and health improvements
-- **🔄 Sync Across Devices**: Seamless experience across mobile and web platforms
+- **🔄 Sync Across Devices**: Seamless experience across mobile and pillbox
 
 
 
@@ -54,22 +49,23 @@ HealthMobi is a comprehensive healthcare platform that bridges the gap between d
 - **Flutter**: Cross-platform mobile application
 - **Modern UI/UX**: Intuitive user interface for all features
 - **Local Storage**: Caching for offline functionality
-- **Twillio Notifications**: Real-time alerts for medication reminders
+- **Push Notifications**: Real-time alerts for medication reminders
 
 ### Embedded Systems
 
 - **IoT Integration**: Support for smart medication pill box 
-- **Health Monitoring**: Integration with health tracking devices
+- **Adherence Monitoring**: Integration with intake tracking sensors
 
 ### Database Schema
 
 The application uses a relational database with tables for:
 
-- Users (patients and doctors)
+- Users 
 - Authentication tokens
+- Prescription images
 - Medication courses
-- Medicine intakes
-- Prescription media (images and voice notes)
+- Medicine course
+- Medicine intake
 - Daily motivational quotes
 
 ## 🚀 Getting Started
@@ -108,27 +104,22 @@ The mobile application provides:
 
 - User-friendly medication tracking interface
 - Reminders and notifications
-- Doctor communication tools
-- Health insights and analytics
+- Medication adherence insights and analytics
 
 ## 💡 Unique Features
 
 - **Quote of the Day**: Daily motivational health quotes in the user's preferred language
 - **Visual Medication Adherence**: Intuitive matrix display showing medication compliance
-- **Voice Prescription Notes**: Doctors can record voice notes with prescription instructions
 - **Custom User Notes**: Personal health notes for patients to track symptoms and progress
 
 ## 🔒 Security Features
 
 - Token-based authentication
 - Secure OTP verification
-- Role-based access control
-- Encrypted sensitive data
 
 ## 🌈 Future Roadmap
 
-- AI-powered health insights
-- Telemedicine video consultations
+- AI-powered health insight
 - Integration with wearable health devices
 - Expanded language support
 
@@ -153,55 +144,6 @@ This project is licensed under the [MIT License](LICENSE).
 # 🛠️ Detailed Technical Documentation
 
 ## System Architecture Overview
-
-```mermaid
-graph TD
-    subgraph "Frontend (Flutter App)"
-        F1["User Interface"]
-        F2["Local Storage"]
-        F3["Push Notifications"]
-        F4["API Integration"]
-    end
-    subgraph "Backend (Node.js/Express)"
-        B1["REST API Controllers"]
-        B2["WebSocket Server"]
-        B3["Cron Jobs"]
-        B4["Twilio SMS Service"]
-        B5["Database ORM"]
-    end
-    subgraph "AI Layer"
-        AI1["AI Assistant Service"]
-        AI2["Prescription Extraction Service"]
-        AI3["Chroma Vector DB"]
-    end
-    subgraph "Embedded C"
-        EC1["Smart Pillbox Firmware"]
-    end
-    subgraph "Database"
-        DB1["MySQL"]
-        DB2["Chroma DB (AI)"]
-    end
-
-    F1 -- "API Calls" --> B1
-    F1 -- "WebSocket" --> B2
-    F1 -- "Push/Local Notifications" --> F3
-    F1 -- "AI Chat/Prescription Upload" --> AI1
-    F1 -- "Bluetooth/IoT" --> EC1
-    F4 -- "REST API" --> B1
-    B1 -- "DB Queries" --> DB1
-    B1 -- "AI Requests" --> AI1
-    B1 -- "WebSocket Events" --> B2
-    B1 -- "Twilio SMS" --> B4
-    B3 -- "Scheduled Reminders" --> B2
-    B3 -- "DB Access" --> DB1
-    B2 -- "Real-time Events" --> F1
-    AI1 -- "Prescription Extraction" --> AI2
-    AI1 -- "Vector Search" --> AI3
-    AI2 -- "DB Access" --> DB2
-    AI3 -- "Vector Storage" --> DB2
-    EC1 -- "Intake Events" --> B1
-    EC1 -- "Bluetooth Sync" --> F1
-```
 
 ### Component Responsibilities
 
@@ -290,21 +232,6 @@ sequenceDiagram
     Prescription_Extractor->>ChromaDB: Store/extract vectors
     AI_Assistant-->>Frontend: Reply/structured data
     Frontend-->>User: Show AI response
-```
-
-### 4. Smart Pillbox Integration
-
-```mermaid
-sequenceDiagram
-    participant Pillbox
-    participant Frontend
-    participant Backend
-    participant DB
-    Pillbox->>Frontend: Intake event via Bluetooth
-    Frontend->>Backend: Report intake
-    Backend->>DB: Log intake
-    Backend-->>Frontend: Update adherence
-    Frontend-->>User: Show updated status
 ```
 
 ---
