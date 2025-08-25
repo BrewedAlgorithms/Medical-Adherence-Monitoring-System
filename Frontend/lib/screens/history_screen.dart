@@ -3,20 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:healthmobi/api/api_provider.dart';
 import 'package:healthmobi/models/medication_course_model.dart';
-import 'package:healthmobi/models/user_model.dart';
 import 'package:healthmobi/provider/medication_course_provider.dart';
 import 'package:healthmobi/provider/medication_course_state_provider.dart';
-import 'package:healthmobi/provider/profile_provider.dart';
-import 'package:healthmobi/provider/profile_state_provider.dart';
 import 'package:healthmobi/reusable/constant.dart';
-import 'package:healthmobi/screens/rewards_screen.dart';
 import 'package:healthmobi/widget/skeleton_placeholder.dart';
-import 'package:intl/intl.dart';
 import 'package:resize/resize.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widget/medication_medi_screen_card.dart';
-import 'logo_screen.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
