@@ -104,12 +104,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
-                          TextEditingController _textFieldController =
+                          TextEditingController textFieldController =
                               TextEditingController();
                           return AlertDialog(
                             title: Text('Enter Information'),
                             content: TextField(
-                              controller: _textFieldController,
+                              controller: textFieldController,
                               decoration: InputDecoration(
                                   hintText: "Enter your text here"),
                             ),
@@ -125,7 +125,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 onPressed: () async {
                                   // Handle "OK" action
                                   String enteredText =
-                                      _textFieldController.text;
+                                      textFieldController.text;
                                   SharedPreferences pref =
                                       await SharedPreferences.getInstance();
                                   pref.setString('aiurl', enteredText.trim());

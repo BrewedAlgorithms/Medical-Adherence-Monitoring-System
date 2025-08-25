@@ -26,7 +26,7 @@ class BubbleSpecialOne extends StatelessWidget {
   final BoxConstraints? constraints;
 
   const BubbleSpecialOne({
-    Key? key,
+    super.key,
     this.isSender = true,
     this.constraints,
     required this.text,
@@ -41,14 +41,14 @@ class BubbleSpecialOne extends StatelessWidget {
       fontSize: 16,
     ),
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   ///chat bubble builder method
   @override
   Widget build(BuildContext context) {
     bool stateTick = false;
     Icon? stateIcon;
-    Offset _tapPosition = Offset.zero;
+    Offset tapPosition = Offset.zero;
     if (sent) {
       stateTick = true;
       stateIcon = const Icon(
@@ -78,16 +78,16 @@ class BubbleSpecialOne extends StatelessWidget {
       alignment: isSender ? Alignment.topRight : Alignment.topLeft,
       child: GestureDetector(
         onTapDown: (TapDownDetails details) {
-          _tapPosition = details.globalPosition;
+          tapPosition = details.globalPosition;
         },
         onLongPress: () {
           showMenu(
             context: context,
             position: RelativeRect.fromLTRB(
-              _tapPosition.dx, // Left
-              _tapPosition.dy, // Top
-              _tapPosition.dx, // Right
-              _tapPosition.dy, // Bottom
+              tapPosition.dx, // Left
+              tapPosition.dy, // Top
+              tapPosition.dx, // Right
+              tapPosition.dy, // Bottom
             ),
             items: [
               PopupMenuItem(
@@ -180,8 +180,8 @@ class SpecialChatBubbleOne extends CustomPainter {
     required this.tail,
   });
 
-  double _radius = 10.0;
-  double _x = 10.0;
+  final double _radius = 10.0;
+  final double _x = 10.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -198,9 +198,9 @@ class SpecialChatBubbleOne extends CustomPainter {
               topLeft: Radius.circular(_radius),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
-        var path = new Path();
+        var path = Path();
         path.moveTo(size.width - _x, 0);
         path.lineTo(size.width - _x, 10);
         path.lineTo(size.width, 0);
@@ -214,7 +214,7 @@ class SpecialChatBubbleOne extends CustomPainter {
               topRight: Radius.circular(3),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
       } else {
         canvas.drawRRect(
@@ -229,7 +229,7 @@ class SpecialChatBubbleOne extends CustomPainter {
               topRight: Radius.circular(_radius),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
       }
     } else {
@@ -245,9 +245,9 @@ class SpecialChatBubbleOne extends CustomPainter {
               bottomLeft: Radius.circular(_radius),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
-        var path = new Path();
+        var path = Path();
         path.moveTo(_x, 0);
         path.lineTo(_x, 10);
         path.lineTo(0, 0);
@@ -261,7 +261,7 @@ class SpecialChatBubbleOne extends CustomPainter {
               topLeft: Radius.circular(3),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
       } else {
         canvas.drawRRect(
@@ -276,7 +276,7 @@ class SpecialChatBubbleOne extends CustomPainter {
               topLeft: Radius.circular(_radius),
             ),
             Paint()
-              ..color = this.color
+              ..color = color
               ..style = PaintingStyle.fill);
       }
     }
