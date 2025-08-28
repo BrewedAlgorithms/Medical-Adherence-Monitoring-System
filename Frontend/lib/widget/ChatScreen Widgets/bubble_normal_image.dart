@@ -57,7 +57,7 @@ class BubbleNormalImage extends StatelessWidget {
   final EdgeInsets? padding;
 
   const BubbleNormalImage({
-    Key? key,
+    super.key,
     required this.id,
     this.senderName,
     required this.image,
@@ -74,7 +74,7 @@ class BubbleNormalImage extends StatelessWidget {
     this.seen = false,
     this.onTap,
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   /// image bubble builder method
   @override
@@ -123,6 +123,16 @@ class BubbleNormalImage extends StatelessWidget {
             // maxHeight: MediaQuery.of(context).size.width * .5,
           ),
           child: GestureDetector(
+              onLongPress: onLongPress,
+              onTap: onTap ??
+                  () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) {
+                      return _DetailScreen(
+                        tag: id,
+                        image: image,
+                      );
+                    }));
+                  },
               child: Hero(
                 tag: id,
                 child: Stack(
@@ -180,17 +190,7 @@ class BubbleNormalImage extends StatelessWidget {
                           ),
                   ],
                 ),
-              ),
-              onLongPress: onLongPress,
-              onTap: onTap ??
-                  () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) {
-                      return _DetailScreen(
-                        tag: id,
-                        image: image,
-                      );
-                    }));
-                  }),
+              )),
         ),
         if (isSender && trailing != null) SizedBox.shrink(),
       ],
@@ -203,8 +203,7 @@ class _DetailScreen extends StatefulWidget {
   final String tag;
   final Widget image;
 
-  const _DetailScreen({Key? key, required this.tag, required this.image})
-      : super(key: key);
+  const _DetailScreen({super.key, required this.tag, required this.image});
 
   @override
   _DetailScreenState createState() => _DetailScreenState();
