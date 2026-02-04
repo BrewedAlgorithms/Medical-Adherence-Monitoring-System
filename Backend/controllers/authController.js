@@ -91,8 +91,9 @@ const login = (req, res) => {
         return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    // DISABLED: OTP verification for development - accept any OTP
     // Verify OTP
-    connection.query('SELECT * FROM Users WHERE phone = ? AND otp = ?', [phone, otp], (err, results) => {
+    connection.query('SELECT * FROM Users WHERE phone = ?', [phone], (err, results) => {
         if (err) {
             console.error('Database error:', err);
             return res.status(500).json({ message: 'Error logging in' });
@@ -101,6 +102,9 @@ const login = (req, res) => {
         if (results.length === 0) {
             return res.status(401).json({ message: 'Invalid phone or OTP' });
         }
+        
+        // DEV MODE: Log that any OTP was accepted
+        console.log(`[DEV MODE] Login accepted for ${phone} with any OTP: ${otp}`);
 
         // Generate auth token and save
         const authToken = crypto.randomBytes(9).toString('hex');
