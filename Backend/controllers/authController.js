@@ -1,6 +1,7 @@
 const connection = require('../db.js');
 const crypto = require('crypto');
-const { sendMessage } = require('../twilio.js');
+// DISABLED: Twilio OTP sending for development - using hardcoded "0000" OTP
+// const { sendMessage } = require('../twilio.js');
 
 const initializeLogin = async (req, res) => {
     const { phone } = req.body;
@@ -14,7 +15,9 @@ const initializeLogin = async (req, res) => {
     }
     
     // Generate OTP (4-digit code)
-    const otp = Math.floor(1000 + Math.random() * 9000);
+    // DISABLED: Using hardcoded OTP for development/testing
+    // const otp = Math.floor(1000 + Math.random() * 9000);
+    const otp = "0000"; // Hardcoded OTP - Twilio disabled for development
     
     try {
         // Check if user exists
@@ -35,14 +38,17 @@ const initializeLogin = async (req, res) => {
                             return res.status(500).json({ message: 'Error saving user' });
                         }
                         
-                        try {
-                            // Send OTP message
-                            await sendMessage("Your OTP is: " + otp, phone);
-                            return res.status(201).json({ message: 'User created and OTP sent' });
-                        } catch (error) {
-                            console.error('Failed to send OTP:', error);
-                            return res.status(500).json({ message: 'Failed to send OTP' });
-                        }
+                        // DISABLED: Twilio OTP sending for development
+                        // try {
+                        //     // Send OTP message
+                        //     await sendMessage("Your OTP is: " + otp, phone);
+                        //     return res.status(201).json({ message: 'User created and OTP sent' });
+                        // } catch (error) {
+                        //     console.error('Failed to send OTP:', error);
+                        //     return res.status(500).json({ message: 'Failed to send OTP' });
+                        // }
+                        console.log(`[DEV MODE] OTP for ${phone}: ${otp}`);
+                        return res.status(201).json({ message: 'User created and OTP sent' });
                     }
                 );
             } else {
@@ -53,15 +59,18 @@ const initializeLogin = async (req, res) => {
                         return res.status(500).json({ message: 'Error updating user' });
                     }
                     
+                    // DISABLED: Twilio OTP sending for development
                     // Only send OTP if profile is complete
                     if (results[0].isprofilecomplete) {
-                        try {
-                            await sendMessage(otp, phone);
-                            return res.json({ message: 'OTP sent' });
-                        } catch (error) {
-                            console.error('Failed to send OTP:', error);
-                            return res.status(500).json({ message: 'Failed to send OTP' });
-                        }
+                        // try {
+                        //     await sendMessage(otp, phone);
+                        //     return res.json({ message: 'OTP sent' });
+                        // } catch (error) {
+                        //     console.error('Failed to send OTP:', error);
+                        //     return res.status(500).json({ message: 'Failed to send OTP' });
+                        // }
+                        console.log(`[DEV MODE] OTP for ${phone}: ${otp}`);
+                        return res.json({ message: 'OTP sent' });
                     } else {
                         return res.status(201).json({ message: 'User created' });
                     }
