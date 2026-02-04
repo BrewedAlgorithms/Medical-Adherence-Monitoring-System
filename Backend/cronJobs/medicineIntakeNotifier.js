@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const connection = require('../db.js');
+const { waitForDatabase } = require('../db.js');
 const { sendMessage } = require('../twilio.js');
 const { broadcastMessage, registerMessageHandler } = require('../socket.js');
 
@@ -276,44 +277,65 @@ const preComputeBatches = () => {
   console.log(`Pre-computed ${scheduledBatches.size} batches for today's schedule`);
 };
 
-// Function to load today's intakes into the buffer and prepare batches
-const loadTodaysIntakes = () => {
-  return new Promise((resolve, reject) => {
-    connection.query(
-      `SELECT mi.*, mc.medicine_name 
-       FROM MedicineIntakes mi
-       JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
-       WHERE DATE(mi.scheduled_at) = CURDATE() 
-       AND mi.taken_at IS NULL
-       ORDER BY mi.scheduled_at`,
-      (err, results) => {
-        if (err) {
-          console.error('Error loading today\'s intakes:', err);
-          reject(err);
-          return;
+// Function to load today's intakes into the buffer and prepare batches with retry logic
+const loadTodaysIntakes = async (maxRetries = 5) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const results = await new Promise((resolve, reject) => {
+        connection.query(
+          `SELECT mi.*, mc.medicine_name 
+           FROM MedicineIntakes mi
+           JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
+           WHERE DATE(mi.scheduled_at) = CURDATE() 
+           AND mi.taken_at IS NULL
+           ORDER BY mi.scheduled_at`,
+          (err, results) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(results);
+          }
+        );
+      });
+      
+      // Reset the buffer with new data
+      todaysIntakes = results.map(intake => ({
+        ...intake,
+        notified: false, // Add a flag to track if we've notified for this intake
+        missed: false    // Add a flag to track if this intake was missed (timed out)
+      }));
+      
+      console.log(`Loaded ${todaysIntakes.length} intakes for today`);
+      console.log(`Using ${ENABLED_BOXES.length} enabled boxes: ${ENABLED_BOXES.join(', ')}`);
+      
+      // Clear any active notifications
+      activeNotifications.clear();
+      currentBoxToIntakeMapping = {};
+      
+      // Pre-compute the batches right after loading intakes
+      preComputeBatches();
+      
+      return todaysIntakes;
+    } catch (err) {
+      lastError = err;
+      if (err.code === 'ECONNREFUSED' || err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') {
+        if (attempt < maxRetries) {
+          const delay = 2000 * attempt; // Exponential backoff: 2s, 4s, 6s, 8s, 10s
+          console.log(`Error loading today's intakes (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
         }
-        
-        // Reset the buffer with new data
-        todaysIntakes = results.map(intake => ({
-          ...intake,
-          notified: false, // Add a flag to track if we've notified for this intake
-          missed: false    // Add a flag to track if this intake was missed (timed out)
-        }));
-        
-        console.log(`Loaded ${todaysIntakes.length} intakes for today`);
-        console.log(`Using ${ENABLED_BOXES.length} enabled boxes: ${ENABLED_BOXES.join(', ')}`);
-        
-        // Clear any active notifications
-        activeNotifications.clear();
-        currentBoxToIntakeMapping = {};
-        
-        // Pre-compute the batches right after loading intakes
-        preComputeBatches();
-        
-        resolve(todaysIntakes);
       }
-    );
-  });
+      // For other errors or max retries reached, throw
+      throw err;
+    }
+  }
+  
+  // If we get here, all retries failed
+  throw lastError;
 };
 
 // Function to refresh intakes without full reload (for mid-day updates)
@@ -467,16 +489,18 @@ cron.schedule('* * * * *', () => {
   checkIntakeTimes();
 });
 
-// Initial load when server starts
-loadTodaysIntakes()
-  .then(() => {
+// Initial load when server starts - wait for database first
+(async () => {
+  try {
+    await waitForDatabase();
+    await loadTodaysIntakes();
     console.log('Initial load of today\'s intakes completed');
     // Send initial notification that the system is up and running
     // sendMessage("Medication reminder system is active and monitoring your schedule.", PHONE_NUMBER);
-  })
-  .catch(err => {
+  } catch (err) {
     console.error('Failed to load initial intakes:', err);
-  });
+  }
+})();
 
 module.exports = { 
   loadTodaysIntakes, 

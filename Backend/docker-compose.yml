@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=HealthMobi
+      # Add other environment variables as needed, or use env_file
+      # - JWT_SECRET=your_jwt_secret
+      # - CLOUDINARY_CLOUD_NAME=...
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=HealthMobi
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Mount initialization scripts
+      # Docker executes files in this directory in alphabetical order
+      - ./main.sql:/docker-entrypoint-initdb.d/01-main.sql
+      - ./database_optimization.sql:/docker-entrypoint-initdb.d/02-optimization.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

@@ -8,68 +8,68 @@ USE HealthMobi;
 -- ============================================================================
 
 -- Users table indexes
-CREATE INDEX IF NOT EXISTS idx_users_phone ON Users(phone);
-CREATE INDEX IF NOT EXISTS idx_users_role ON Users(role);
-CREATE INDEX IF NOT EXISTS idx_users_language ON Users(language);
-CREATE INDEX IF NOT EXISTS idx_users_profile_complete ON Users(isprofilecomplete);
+CREATE INDEX idx_users_phone ON Users(phone);
+CREATE INDEX idx_users_role ON Users(role);
+CREATE INDEX idx_users_language ON Users(language);
+CREATE INDEX idx_users_profile_complete ON Users(isprofilecomplete);
 
 -- AuthTokens table indexes
-CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON AuthTokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_auth_tokens_token ON AuthTokens(auth_token);
+CREATE INDEX idx_auth_tokens_user_id ON AuthTokens(user_id);
+CREATE INDEX idx_auth_tokens_token ON AuthTokens(auth_token);
 
 -- Courses table indexes
-CREATE INDEX IF NOT EXISTS idx_courses_user_id ON Courses(user_id);
-CREATE INDEX IF NOT EXISTS idx_courses_doctor_id ON Courses(doctor_id);
-CREATE INDEX IF NOT EXISTS idx_courses_status ON Courses(status);
-CREATE INDEX IF NOT EXISTS idx_courses_start_date ON Courses(start_date);
-CREATE INDEX IF NOT EXISTS idx_courses_end_date ON Courses(end_date);
-CREATE INDEX IF NOT EXISTS idx_courses_created_at ON Courses(created_at);
+CREATE INDEX idx_courses_user_id ON Courses(user_id);
+CREATE INDEX idx_courses_doctor_id ON Courses(doctor_id);
+CREATE INDEX idx_courses_status ON Courses(status);
+CREATE INDEX idx_courses_start_date ON Courses(start_date);
+CREATE INDEX idx_courses_end_date ON Courses(end_date);
+CREATE INDEX idx_courses_created_at ON Courses(created_at);
 
 -- MedicineCourses table indexes
-CREATE INDEX IF NOT EXISTS idx_medicine_courses_course_id ON MedicineCourses(course_id);
-CREATE INDEX IF NOT EXISTS idx_medicine_courses_status ON MedicineCourses(status);
-CREATE INDEX IF NOT EXISTS idx_medicine_courses_start_date ON MedicineCourses(start_date);
-CREATE INDEX IF NOT EXISTS idx_medicine_courses_end_date ON MedicineCourses(end_date);
-CREATE INDEX IF NOT EXISTS idx_medicine_courses_frequency ON MedicineCourses(frequency);
+CREATE INDEX idx_medicine_courses_course_id ON MedicineCourses(course_id);
+CREATE INDEX idx_medicine_courses_status ON MedicineCourses(status);
+CREATE INDEX idx_medicine_courses_start_date ON MedicineCourses(start_date);
+CREATE INDEX idx_medicine_courses_end_date ON MedicineCourses(end_date);
+CREATE INDEX idx_medicine_courses_frequency ON MedicineCourses(frequency);
 
 -- MedicineIntakes table indexes
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_medicine_course_id ON MedicineIntakes(medicine_course_id);
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_scheduled_at ON MedicineIntakes(scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_taken_at ON MedicineIntakes(taken_at);
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_beforeafter ON MedicineIntakes(beforeafter);
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_created_at ON MedicineIntakes(created_at);
+CREATE INDEX idx_medicine_intakes_medicine_course_id ON MedicineIntakes(medicine_course_id);
+CREATE INDEX idx_medicine_intakes_scheduled_at ON MedicineIntakes(scheduled_at);
+CREATE INDEX idx_medicine_intakes_taken_at ON MedicineIntakes(taken_at);
+CREATE INDEX idx_medicine_intakes_beforeafter ON MedicineIntakes(beforeafter);
+CREATE INDEX idx_medicine_intakes_created_at ON MedicineIntakes(created_at);
 
 -- MediQuotes table indexes
-CREATE INDEX IF NOT EXISTS idx_medi_quotes_language ON MediQuotes(language);
+CREATE INDEX idx_medi_quotes_language ON MediQuotes(language);
 
 -- QuoteOfTheDay table indexes
-CREATE INDEX IF NOT EXISTS idx_quote_of_day_language ON QuoteOfTheDay(language);
-CREATE INDEX IF NOT EXISTS idx_quote_of_day_last_updated ON QuoteOfTheDay(last_updated);
+CREATE INDEX idx_quote_of_day_language ON QuoteOfTheDay(language);
+CREATE INDEX idx_quote_of_day_last_updated ON QuoteOfTheDay(last_updated);
 
 -- PrescriptionImages table indexes
-CREATE INDEX IF NOT EXISTS idx_prescription_images_course_id ON PrescriptionImages(course_id);
-CREATE INDEX IF NOT EXISTS idx_prescription_images_created_at ON PrescriptionImages(created_at);
+CREATE INDEX idx_prescription_images_course_id ON PrescriptionImages(course_id);
+CREATE INDEX idx_prescription_images_created_at ON PrescriptionImages(created_at);
 
 -- PrescriptionVoiceNotes table indexes
-CREATE INDEX IF NOT EXISTS idx_prescription_voice_course_id ON PrescriptionVoiceNotes(course_id);
-CREATE INDEX IF NOT EXISTS idx_prescription_voice_created_at ON PrescriptionVoiceNotes(created_at);
+CREATE INDEX idx_prescription_voice_course_id ON PrescriptionVoiceNotes(course_id);
+CREATE INDEX idx_prescription_voice_created_at ON PrescriptionVoiceNotes(created_at);
 
 -- UserNotes table indexes
-CREATE INDEX IF NOT EXISTS idx_user_notes_user_id ON UserNotes(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_notes_updated_at ON UserNotes(updated_at);
+CREATE INDEX idx_user_notes_user_id ON UserNotes(user_id);
+CREATE INDEX idx_user_notes_updated_at ON UserNotes(updated_at);
 
 -- ============================================================================
 -- COMPOSITE INDEXES FOR COMMON QUERY PATTERNS
 -- ============================================================================
 
 -- For course queries with status and date filters
-CREATE INDEX IF NOT EXISTS idx_courses_status_date ON Courses(status, start_date, end_date);
+CREATE INDEX idx_courses_status_date ON Courses(status, start_date, end_date);
 
 -- For medicine intake queries with date ranges
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_course_scheduled ON MedicineIntakes(medicine_course_id, scheduled_at);
+CREATE INDEX idx_medicine_intakes_course_scheduled ON MedicineIntakes(medicine_course_id, scheduled_at);
 
 -- For adherence tracking queries
-CREATE INDEX IF NOT EXISTS idx_medicine_intakes_course_taken ON MedicineIntakes(medicine_course_id, taken_at);
+CREATE INDEX idx_medicine_intakes_course_taken ON MedicineIntakes(medicine_course_id, taken_at);
 
 -- ============================================================================
 -- PERFORMANCE MONITORING QUERIES
