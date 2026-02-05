@@ -299,7 +299,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"user_id\": {{userId}},\n    \"doctor_id\": 1,\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"medicineCourses\": [\n        {\n            \"medicine_name\": \"Paracetamol\",\n            \"start_date\": \"2026-02-01\",\n            \"end_date\": \"2026-02-28\",\n            \"frequency\": [\"1\", \"0\", \"1\", \"0\"],\n            \"medtype\": \"tablet\"\n        }\n    ]\n}"
+							"raw": "{\n    \"user_id\": {{userId}},\n    \"doctor_id\": 1,\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"medicineCourses\": [\n        {\n            \"medicine_name\": \"Paracetamol\",\n            \"start_date\": \"2026-02-01\",\n            \"end_date\": \"2026-02-28\",\n            \"frequency\": \"1010\",\n            \"medtype\": \"T\"\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/course/new",
@@ -350,7 +350,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"course_id\": {{course_id}},\n    \"medicine_name\": \"Aspirin\",\n    \"status\": \"Ongoing\",\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"frequency\": [\"0\", \"1\", \"0\", \"1\"],\n    \"medtype\": \"tablet\"\n}"
+							"raw": "{\n    \"course_id\": {{course_id}},\n    \"medicine_name\": \"Aspirin\",\n    \"status\": \"Ongoing\",\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"frequency\": \"0101\",\n    \"medtype\": \"T\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/course/addMedicineCourse",

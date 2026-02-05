@@ -172,8 +172,8 @@ Content-Type: application/json
             "medicine_name": "Paracetamol",
             "start_date": "2026-02-01",
             "end_date": "2026-02-28",
-            "frequency": ["1", "0", "1", "0"],
-            "medtype": "tablet"
+            "frequency": "1010",
+            "medtype": "T"
         }
     ]
 }
@@ -181,6 +181,8 @@ Content-Type: application/json
 
 ## Notes
 
+- **frequency** (CHAR(4)): 4-char string, one per slot [morning, afternoon, evening, night]. Use `"1"` for enabled, `"0"` for disabled. Example: `"1010"` = morning + evening only.
+- **medtype** (CHAR(1)): Single char. Example: `"T"` = tablet, `"0"` = pill (before meal), `"1"` = liquid (after meal).
 - **OTP**: In development mode, the backend uses hardcoded OTP `"0000"` for all phone numbers
 - **Authentication**: Most endpoints require Bearer token authentication (except `/auth/login`, `/auth/initializelogin`, and `/media/uploadVoiceNote`)
 - **File Uploads**: 
