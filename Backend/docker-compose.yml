@@ -1,5 +1,10 @@
 version: '3.8'
 
+# Apply changes: docker compose down && docker compose up --build
+# (Migrations run on startup - schema fixes auto-apply to existing DBs)
+# If build cache ignores changes: docker compose build --no-cache && docker compose up
+# Fresh DB (wipes data): docker compose down -v && docker compose up --build
+
 services:
   backend:
     build: .
