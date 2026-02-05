@@ -1,0 +1,1171 @@
+{
+	"info": {
+		"_postman_id": "medical-adherence-monitoring-system",
+		"name": "Medical Adherence Monitoring System",
+		"description": "Complete API collection for Medical Adherence Monitoring System Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Initialize Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201 || pm.response.code === 200) {",
+									"    pm.test(\"Status code is success\", function () {",
+									"        pm.response.to.have.status(201);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/initializelogin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"initializelogin"
+							]
+						},
+						"description": "Initialize login by sending phone number. OTP will be sent (or logged in dev mode)."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.authToken) {",
+									"        pm.collectionVariables.set(\"authToken\", responseJson.authToken);",
+									"        pm.collectionVariables.set(\"userId\", responseJson.userId);",
+									"        console.log(\"Auth Token stored:\", responseJson.authToken);",
+									"        console.log(\"User ID stored:\", responseJson.userId);",
+									"    }",
+									"    pm.test(\"Status code is 200\", function () {",
+									"        pm.response.to.have.status(200);",
+									"    });",
+									"    pm.test(\"Response has authToken\", function () {",
+									"        pm.expect(responseJson).to.have.property('authToken');",
+									"    });",
+									"    pm.test(\"Response has userId\", function () {",
+									"        pm.expect(responseJson).to.have.property('userId');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"9876543210\",\n    \"otp\": \"0000\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with phone and OTP. Returns authToken and userId which are stored in collection variables."
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Registration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{userId}},\n    \"email\": \"user@example.com\",\n    \"name\": \"John Doe\",\n    \"address\": \"123 Main St, City, State\",\n    \"language\": \"en\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/complete-registration",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"complete-registration"
+							]
+						},
+						"description": "Complete user registration with profile details. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const responseJson = pm.response.json();",
+									"if (responseJson.user_id) {",
+									"    pm.collectionVariables.set(\"userId\", responseJson.user_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/validate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"validate"
+							]
+						},
+						"description": "Validate authentication token. Returns user information."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.unset(\"authToken\");",
+									"    pm.collectionVariables.unset(\"userId\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate authentication token."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, registration, and token management"
+		},
+		{
+			"name": "Course Management",
+			"item": [
+				{
+					"name": "Create New Course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.course_id) {",
+									"        pm.collectionVariables.set(\"course_id\", responseJson.course_id);",
+									"        console.log(\"Course ID stored:\", responseJson.course_id);",
+									"    }",
+									"    pm.test(\"Status code is success\", function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": {{userId}},\n    \"doctor_id\": 1,\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"medicineCourses\": [\n        {\n            \"medicine_name\": \"Paracetamol\",\n            \"start_date\": \"2026-02-01\",\n            \"end_date\": \"2026-02-28\",\n            \"frequency\": [\"1\", \"0\", \"1\", \"0\"],\n            \"medtype\": \"tablet\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/course/new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"new"
+							]
+						},
+						"description": "Create a new medication course with medicines. Returns course_id which is stored in collection variables."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Medicine to Course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"course_id\": {{course_id}},\n    \"medicine_name\": \"Aspirin\",\n    \"status\": \"Ongoing\",\n    \"start_date\": \"2026-02-01\",\n    \"end_date\": \"2026-02-28\",\n    \"frequency\": [\"0\", \"1\", \"0\", \"1\"],\n    \"medtype\": \"tablet\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/course/addMedicineCourse",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"addMedicineCourse"
+							]
+						},
+						"description": "Add a medicine to an existing course."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Medication Courses",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const responseJson = pm.response.json();",
+									"if (responseJson && Array.isArray(responseJson) && responseJson.length > 0) {",
+									"    if (responseJson[0].course_id && !pm.collectionVariables.get(\"course_id\")) {",
+									"        pm.collectionVariables.set(\"course_id\", responseJson[0].course_id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/medication-courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"medication-courses"
+							]
+						},
+						"description": "Get all medication courses for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Today's Schedule",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/todays-schedule",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"todays-schedule"
+							]
+						},
+						"description": "Get today's medication schedule for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Last 7 Day Matrix",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/last-7-day-matrix",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"last-7-day-matrix"
+							]
+						},
+						"description": "Get adherence matrix for the last 7 days."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Lifetime Matrix",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/lifetime-matrix",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"lifetime-matrix"
+							]
+						},
+						"description": "Get lifetime adherence matrix for all courses."
+					},
+					"response": []
+				},
+				{
+					"name": "Take Medicine",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"intake_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/course/take-medicine",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"take-medicine"
+							]
+						},
+						"description": "Mark a medicine intake as taken."
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Today Intake",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"intake_ids\": [1, 2, 3]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/course/today-intake/sync",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								"today-intake",
+								"sync"
+							]
+						},
+						"description": "Sync multiple medicine intakes for today."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/:course_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"course",
+								":course_id"
+							],
+							"variable": [
+								{
+									"key": "course_id",
+									"value": "{{course_id}}"
+								}
+							]
+						},
+						"description": "Delete a course by course_id."
+					},
+					"response": []
+				}
+			],
+			"description": "Course and medication management endpoints"
+		},
+		{
+			"name": "User Features",
+			"item": [
+				{
+					"name": "Get User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const responseJson = pm.response.json();",
+									"if (responseJson && responseJson.user_id) {",
+									"    pm.collectionVariables.set(\"userId\", responseJson.user_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/user-feature/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user-feature",
+								"profile"
+							]
+						},
+						"description": "Get user profile information."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Notes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/user-feature/note",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user-feature",
+								"note"
+							]
+						},
+						"description": "Get user notes."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Notes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"note\": \"Remember to take medicine after meals\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/user-feature/note",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user-feature",
+								"note"
+							]
+						},
+						"description": "Update or create user notes."
+					},
+					"response": []
+				}
+			],
+			"description": "User-specific features endpoints"
+		},
+		{
+			"name": "General",
+			"item": [
+				{
+					"name": "Root - Welcome",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Root endpoint - Welcome message. No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Broadcast Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Test broadcast message\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/broadcast",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"broadcast"
+							]
+						},
+						"description": "Broadcast a message via WebSocket to all connected clients. No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Quote of the Day",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/general/quote",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"general",
+								"quote"
+							]
+						},
+						"description": "Get motivational quote of the day."
+					},
+					"response": []
+				}
+			],
+			"description": "General application endpoints"
+		},
+		{
+			"name": "Special Features",
+			"item": [
+				{
+					"name": "Get Dashboard",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/special/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"special",
+								"dashboard"
+							]
+						},
+						"description": "Get dashboard data for the authenticated user."
+					},
+					"response": []
+				}
+			],
+			"description": "Special features endpoints"
+		},
+		{
+			"name": "Media",
+			"item": [
+				{
+					"name": "Upload Prescription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201 || pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.course_id) {",
+									"        pm.collectionVariables.set(\"course_id\", responseJson.course_id);",
+									"        console.log(\"Course ID stored:\", responseJson.course_id);",
+									"    }",
+									"    pm.test(\"Status code is success\", function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "prescription",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "user_id",
+									"value": "{{userId}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/media/uploadPrescription",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"media",
+								"uploadPrescription"
+							]
+						},
+						"description": "Upload a prescription image. Requires multipart/form-data with 'prescription' file field and 'user_id' field. Returns course_id which is stored in collection variables."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Voice Note",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "voiceNote",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/media/uploadVoiceNote/:course_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"media",
+								"uploadVoiceNote",
+								":course_id"
+							],
+							"variable": [
+								{
+									"key": "course_id",
+									"value": "{{course_id}}"
+								}
+							]
+						},
+						"description": "Upload a voice note for a specific course. Requires multipart/form-data with 'voiceNote' file field. Note: This endpoint does not require authentication."
+					},
+					"response": []
+				}
+			],
+			"description": "Media upload endpoints for prescriptions and voice notes"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3001",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "course_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
