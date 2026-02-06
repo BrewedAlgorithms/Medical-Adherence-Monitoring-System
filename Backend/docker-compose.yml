@@ -24,6 +24,15 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  prescription_extraction:
+    build:
+      context: "../AI Layer/Prescription Extraction Service"
+    ports:
+      - "3002:3002"
+    env_file:
+      - "../AI Layer/Prescription Extraction Service/.env"
+    restart: unless-stopped
+
   db:
     image: mysql:8.0
     command: --default-authentication-plugin=mysql_native_password
