@@ -21,8 +21,12 @@ const setIntakeIn1Min = (req, res) => {
   // Get today's date in IST
   const today = moment().format('YYYY-MM-DD');
   // Create moment object for 1 minute from now in IST
-  const oneMinuteFromNow = moment().add(1, 'minute');
-  const oneMinuteFromNowMySQL = oneMinuteFromNow.format('YYYY-MM-DD HH:mm:ss');
+  const oneMinuteFromNowIST = moment().add(1, 'minute');
+  
+  // Convert IST time to UTC for MySQL storage
+  // MySQL TIMESTAMP stores in UTC, so we need to convert IST to UTC before inserting
+  const oneMinuteFromNowUTC = oneMinuteFromNowIST.clone().utc();
+  const oneMinuteFromNowMySQL = oneMinuteFromNowUTC.format('YYYY-MM-DD HH:mm:ss');
   
   // First, find the first intake scheduled for today (across all users)
   // Order by scheduled_at ASC to get the earliest one
@@ -61,8 +65,7 @@ const setIntakeIn1Min = (req, res) => {
     const intakeId = intake.intake_id;
     const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
     
-    // Update the intake to 1 minute from now
-    // Insert datetime string directly - MySQL will handle timezone conversion
+    // Update the intake to 1 minute from now (stored as UTC in MySQL)
     const updateQuery = `
       UPDATE MedicineIntakes 
       SET scheduled_at = ? 
@@ -90,11 +93,12 @@ const setIntakeIn1Min = (req, res) => {
               user_id: intake.user_id,
               course_id: intake.course_id,
               old_scheduled_at: oldScheduledAt,
-              new_scheduled_at: oneMinuteFromNowMySQL,
+              new_scheduled_at_ist: oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
               note: 'Please verify the actual stored time in database'
             });
           }
           
+          // Convert the stored UTC time back to IST for display
           const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
           const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
           
@@ -108,7 +112,8 @@ const setIntakeIn1Min = (req, res) => {
             course_id: intake.course_id,
             old_scheduled_at: oldScheduledAt,
             new_scheduled_at: updatedScheduledAtIST,
-            new_scheduled_at_raw: fetchResults[0].scheduled_at,
+            new_scheduled_at_ist: oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
+            new_scheduled_at_raw_utc: fetchResults[0].scheduled_at,
             updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
           });
         }
