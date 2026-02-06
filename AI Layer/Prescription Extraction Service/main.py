@@ -1,54 +1,23 @@
 import os
 import json
 from dotenv import load_dotenv
-import requests
-import google.generativeai as genai
+from openai import OpenAI
 import socketio
 import eventlet
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Configure OpenAI client (uses OPENAI_API_KEY from .env)
+client = OpenAI()
 
 # Create a Socket.IO server
 sio = socketio.Server(cors_allowed_origins="*")
 app = socketio.WSGIApp(sio)
 
 # Helper Functions
-def download_image(image_url, save_path):
-    """Downloads the image from the given URL."""
-    try:
-        response = requests.get(image_url)
-        response.raise_for_status()
-        with open(save_path, 'wb') as f:
-            f.write(response.content)
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading image: {e}")
-        return False
-
-def upload_to_gemini(path, mime_type=None):
-    """Uploads the given file to Gemini."""
-    try:
-        file = genai.upload_file(path, mime_type=mime_type)
-        return file
-    except Exception as e:
-        print(f"Error uploading to Gemini: {e}")
-        return None
-
 # Model Configuration
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 8192,
-}
-model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash-exp",
-    generation_config=generation_config,
-)
+MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
 
 # Extraction Prompt
 EXTRACTION_PROMPT = """Extract the key details about the prescribed medications from the text and structure them in JSON format. Follow these rules for extraction:
@@ -133,25 +102,25 @@ def connect(sid, environ):
 @sio.on("prescription_extraction")
 def handle_prescription_extraction(sid, image_url):
     print(f"Received image URL from {sid}: {image_url}")
-    image_path = "prescription_image.png"
 
-    # Step 1: Download the image
-    if not download_image(image_url, image_path):
-        sio.emit("error", {"message": "Failed to download image."}, to=sid)
-        return
-
-    # Step 2: Upload the image to Gemini
-    uploaded_file = upload_to_gemini(image_path, mime_type="image/png")
-    if not uploaded_file:
-        sio.emit("error", {"message": "Failed to upload image to Gemini."}, to=sid)
-        return
-
-    # Step 3: Generate response from the model
+    # Generate response from the model
     try:
-        response = model.generate_content([uploaded_file, EXTRACTION_PROMPT])
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": EXTRACTION_PROMPT},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                }
+            ],
+            temperature=0.2,
+        )
         
         # Clean and parse the response
-        cleaned_response = response.text.strip()
+        cleaned_response = (response.choices[0].message.content or "").strip()
         print("Raw Model Response:", cleaned_response)
 
         # Attempt to parse JSON, with fallback to cleaning
