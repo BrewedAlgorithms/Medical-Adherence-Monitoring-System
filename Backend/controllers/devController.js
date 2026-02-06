@@ -20,64 +20,99 @@ const deleteAllCourses = (req, res) => {
 const setIntakeIn1Min = (req, res) => {
   // Get today's date in IST
   const today = moment().format('YYYY-MM-DD');
-  const oneMinuteFromNow = moment().add(1, 'minute').format('YYYY-MM-DD HH:mm:ss');
+  // Create moment object for 1 minute from now in IST
+  const oneMinuteFromNow = moment().add(1, 'minute');
+  const oneMinuteFromNowMySQL = oneMinuteFromNow.format('YYYY-MM-DD HH:mm:ss');
   
   // First, find the first intake scheduled for today (across all users)
   // Order by scheduled_at ASC to get the earliest one
+  // Note: DATE() function uses the timezone of the MySQL server
+  // We need to compare dates properly - get all intakes and filter by IST date
   const findQuery = `
     SELECT mi.intake_id, mi.scheduled_at, mi.medicine_course_id,
            mc.medicine_name, c.user_id, c.course_id
     FROM MedicineIntakes mi
     JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
     JOIN Courses c ON mc.course_id = c.course_id
-    WHERE DATE(mi.scheduled_at) = ? 
-      AND mi.taken_at IS NULL
+    WHERE mi.taken_at IS NULL
     ORDER BY mi.scheduled_at ASC
-    LIMIT 1
   `;
   
-  connection.query(findQuery, [today], (err, results) => {
+  connection.query(findQuery, [], (err, results) => {
     if (err) {
       console.error('[DEV] Error finding intake:', err);
       return res.status(500).json({ error: err.message });
     }
     
-    if (results.length === 0) {
+    // Filter results to find first intake scheduled for today (in IST)
+    const todayIntakes = results.filter(intake => {
+      const scheduledDate = moment(intake.scheduled_at).format('YYYY-MM-DD');
+      return scheduledDate === today;
+    });
+    
+    if (todayIntakes.length === 0) {
       return res.status(404).json({ 
         message: 'No upcoming intake found for today',
         date: today
       });
     }
     
-    const intake = results[0];
+    const intake = todayIntakes[0];
     const intakeId = intake.intake_id;
     const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
     
     // Update the intake to 1 minute from now
+    // Insert datetime string directly - MySQL will handle timezone conversion
     const updateQuery = `
       UPDATE MedicineIntakes 
       SET scheduled_at = ? 
       WHERE intake_id = ?
     `;
     
-    connection.query(updateQuery, [oneMinuteFromNow, intakeId], (updateErr, updateResult) => {
+    connection.query(updateQuery, [oneMinuteFromNowMySQL, intakeId], (updateErr, updateResult) => {
       if (updateErr) {
         console.error('[DEV] Error updating intake:', updateErr);
         return res.status(500).json({ error: updateErr.message });
       }
       
-      console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${oneMinuteFromNow}`);
-      
-      res.json({
-        message: 'Intake scheduled time updated successfully',
-        intake_id: intakeId,
-        medicine_name: intake.medicine_name,
-        user_id: intake.user_id,
-        course_id: intake.course_id,
-        old_scheduled_at: oldScheduledAt,
-        new_scheduled_at: oneMinuteFromNow,
-        updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
-      });
+      // Fetch the updated value to confirm what was actually stored
+      connection.query(
+        'SELECT scheduled_at FROM MedicineIntakes WHERE intake_id = ?',
+        [intakeId],
+        (fetchErr, fetchResults) => {
+          if (fetchErr) {
+            console.error('[DEV] Error fetching updated intake:', fetchErr);
+            // Still return success even if fetch fails
+            return res.json({
+              message: 'Intake scheduled time updated successfully',
+              intake_id: intakeId,
+              medicine_name: intake.medicine_name,
+              user_id: intake.user_id,
+              course_id: intake.course_id,
+              old_scheduled_at: oldScheduledAt,
+              new_scheduled_at: oneMinuteFromNowMySQL,
+              note: 'Please verify the actual stored time in database'
+            });
+          }
+          
+          const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
+          const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
+          
+          console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
+          
+          res.json({
+            message: 'Intake scheduled time updated successfully',
+            intake_id: intakeId,
+            medicine_name: intake.medicine_name,
+            user_id: intake.user_id,
+            course_id: intake.course_id,
+            old_scheduled_at: oldScheduledAt,
+            new_scheduled_at: updatedScheduledAtIST,
+            new_scheduled_at_raw: fetchResults[0].scheduled_at,
+            updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+          });
+        }
+      );
     });
   });
 };
