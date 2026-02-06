@@ -124,111 +124,127 @@ const uploadPrescription = (req, res) => {
       const status = "Ongoing";
       const doctor_id = extractionData.doctor_id || 1; // Use the extracted doctor ID or default to 1
       
-      connection.beginTransaction(async (transactionErr) => {
-        if (transactionErr) {
-          return res.status(500).json({ error: `Transaction error: ${transactionErr.message}` });
+      // Use a single connection from the pool for the whole transaction
+      connection.getConnection((connErr, txConn) => {
+        if (connErr) {
+          console.error("Failed to get DB connection for transaction:", connErr);
+          return res.status(500).json({ error: `Transaction connection error: ${connErr.message}` });
         }
-        
-        try {
-          // 1. Create the course
-          const createCourseResult = await queryAsync(
-            "INSERT INTO Courses (user_id, doctor_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
-            [
-              user_id, 
-              doctor_id, 
-              status, 
-              extractionData.start_date === null || !extractionData.start_date ? today : extractionData.start_date, 
-              extractionData.end_date
-            ]
-          );
-          
-          const course_id = createCourseResult.insertId;
-          
-          // 2. Save the prescription image URL
-          await queryAsync(
-            "INSERT INTO PrescriptionImages (course_id, image_url) VALUES (?, ?)",
-            [course_id, imageUrl]
-          );
-          
-          // 3. Create medicine courses
-          const medicineCourseValues = extractionData.medicineCourses.map(medicine => [
-            course_id,
-            medicine.medicine_name,
-            status,
-            medicine.start_date === null || !medicine.start_date ? today : medicine.start_date,
-            medicine.end_date,
-            medicine.frequency,
-            medicine.medtype
-          ]);
-          
-          const medicineCourseResult = await queryAsync(
-            "INSERT INTO MedicineCourses (course_id, medicine_name, status, start_date, end_date, frequency, medtype) VALUES ?",
-            [medicineCourseValues]
-          );
-          
-          // 4. Create medicine intakes for each medicine course
-          let medicineIntakesCreated = 0;
-          
-          for (let i = 0; i < extractionData.medicineCourses.length; i++) {
-            const medicine = extractionData.medicineCourses[i];
-            const medicine_course_id = medicineCourseResult.insertId + i;
-            
-            let intakeValues = [];
-            let currentDate = new Date(medicine.start_date);
-            let endDate = new Date(medicine.end_date);
-            
-            while (currentDate <= endDate) {
-              const formattedDate = currentDate.toISOString().split("T")[0];
-              
-              const times = [
-                { hour: "08:00:00", flag: 0 },
-                { hour: "12:00:00", flag: 1 },
-                { hour: "18:00:00", flag: 2 },
-                { hour: "22:00:00", flag: 3 }
-              ];
-              
-              times.forEach(({ hour, flag }) => {
-                if (medicine.frequency[flag] === "1") {
-                  const datetime = `${formattedDate} ${hour}`;
-                  const beforeafter = medicine.medtype === "0" ? 0 : 1;
-                  intakeValues.push([medicine_course_id, datetime, beforeafter]);
-                }
-              });
-              
-              currentDate.setDate(currentDate.getDate() + 1);
-            }
-            
-            if (intakeValues.length > 0) {
-              await queryAsync(
-                "INSERT INTO MedicineIntakes (medicine_course_id, scheduled_at, beforeafter) VALUES ?",
-                [intakeValues]
-              );
-              medicineIntakesCreated += intakeValues.length;
-            }
+
+        txConn.beginTransaction(async (transactionErr) => {
+          if (transactionErr) {
+            txConn.release();
+            return res.status(500).json({ error: `Transaction error: ${transactionErr.message}` });
           }
           
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              return connection.rollback(() => {
-                res.status(500).json({ error: `Commit error: ${commitErr.message}` });
-              });
+          try {
+            // 1. Create the course
+            const createCourseResult = await queryAsyncWithConn(
+              txConn,
+              "INSERT INTO Courses (user_id, doctor_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
+              [
+                user_id, 
+                doctor_id, 
+                status, 
+                extractionData.start_date === null || !extractionData.start_date ? today : extractionData.start_date, 
+                extractionData.end_date
+              ]
+            );
+            
+            const course_id = createCourseResult.insertId;
+            
+            // 2. Save the prescription image URL
+            await queryAsyncWithConn(
+              txConn,
+              "INSERT INTO PrescriptionImages (course_id, image_url) VALUES (?, ?)",
+              [course_id, imageUrl]
+            );
+            
+            // 3. Create medicine courses
+            const medicineCourseValues = extractionData.medicineCourses.map(medicine => [
+              course_id,
+              medicine.medicine_name,
+              status,
+              medicine.start_date === null || !medicine.start_date ? today : medicine.start_date,
+              medicine.end_date,
+              medicine.frequency,
+              medicine.medtype
+            ]);
+            
+            const medicineCourseResult = await queryAsyncWithConn(
+              txConn,
+              "INSERT INTO MedicineCourses (course_id, medicine_name, status, start_date, end_date, frequency, medtype) VALUES ?",
+              [medicineCourseValues]
+            );
+            
+            // 4. Create medicine intakes for each medicine course
+            let medicineIntakesCreated = 0;
+            
+            for (let i = 0; i < extractionData.medicineCourses.length; i++) {
+              const medicine = extractionData.medicineCourses[i];
+              const medicine_course_id = medicineCourseResult.insertId + i;
+              
+              let intakeValues = [];
+              let currentDate = new Date(medicine.start_date);
+              let endDate = new Date(medicine.end_date);
+              
+              while (currentDate <= endDate) {
+                const formattedDate = currentDate.toISOString().split("T")[0];
+                
+                const times = [
+                  { hour: "08:00:00", flag: 0 },
+                  { hour: "12:00:00", flag: 1 },
+                  { hour: "18:00:00", flag: 2 },
+                  { hour: "22:00:00", flag: 3 }
+                ];
+                
+                times.forEach(({ hour, flag }) => {
+                  if (medicine.frequency[flag] === "1") {
+                    const datetime = `${formattedDate} ${hour}`;
+                    const beforeafter = medicine.medtype === "0" ? 0 : 1;
+                    intakeValues.push([medicine_course_id, datetime, beforeafter]);
+                  }
+                });
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+              
+              if (intakeValues.length > 0) {
+                await queryAsyncWithConn(
+                  txConn,
+                  "INSERT INTO MedicineIntakes (medicine_course_id, scheduled_at, beforeafter) VALUES ?",
+                  [intakeValues]
+                );
+                medicineIntakesCreated += intakeValues.length;
+              }
             }
             
-            res.status(201).json({
-              message: "Prescription uploaded and processed successfully",
-              course_id: course_id,
-              medicines_created: medicineCourseValues.length,
-              intakes_created: medicineIntakesCreated,
-              prescription_image: imageUrl
+            txConn.commit((commitErr) => {
+              if (commitErr) {
+                return txConn.rollback(() => {
+                  txConn.release();
+                  res.status(500).json({ error: `Commit error: ${commitErr.message}` });
+                });
+              }
+              
+              txConn.release();
+              res.status(201).json({
+                message: "Prescription uploaded and processed successfully",
+                course_id: course_id,
+                medicines_created: medicineCourseValues.length,
+                intakes_created: medicineIntakesCreated,
+                prescription_image: imageUrl
+              });
             });
-          });
-          
-        } catch (error) {
-          connection.rollback(() => {
-            console.error("Database error:", error);
-            res.status(500).json({ error: `Database error: ${error.message}` });
-          });
-        }
+            
+          } catch (error) {
+            txConn.rollback(() => {
+              txConn.release();
+              console.error("Database error:", error);
+              res.status(500).json({ error: `Database error: ${error.message}` });
+            });
+          }
+        });
       });
       
     } catch (error) {
@@ -246,6 +262,16 @@ const uploadPrescription = (req, res) => {
 function queryAsync(sql, params) {
   return new Promise((resolve, reject) => {
     connection.query(sql, params, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+  });
+}
+
+// Helper function to promisify queries using a specific transaction connection
+function queryAsyncWithConn(conn, sql, params) {
+  return new Promise((resolve, reject) => {
+    conn.query(sql, params, (err, result) => {
       if (err) return reject(err);
       resolve(result);
     });
