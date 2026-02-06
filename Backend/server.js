@@ -38,6 +38,7 @@ app.use('/uploads', express.static('uploads'));
 
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/course', require('./routes/courseRoutes'));
+app.use('/dev', require('./routes/devRoutes'));
 app.use('/general', require('./routes/generalRoutes'));
 app.use('/media', require('./routes/mediaRoutes'));
 app.use('/special', require('./routes/specialRoutes'));
