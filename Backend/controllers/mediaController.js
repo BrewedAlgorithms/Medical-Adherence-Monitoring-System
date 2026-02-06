@@ -9,7 +9,9 @@ require('dotenv').config();
 const today = new Date().toISOString().split('T')[0];
 
 // Connect to the AI server for prescription extraction
-const SERVER_URL = `http://localhost:3002`;
+// In Docker, this should point to the prescription_extraction service name.
+// Allow overriding via env for local/non-Docker setups.
+const SERVER_URL = process.env.PRESCRIPTION_AI_URL || `http://localhost:3002`;
 const socket = io(SERVER_URL, {
   reconnection: true,
   reconnectionAttempts: 5,

@@ -16,6 +16,7 @@ services:
       - DB_USER=root
       - DB_PASSWORD=rootpassword
       - DB_NAME=HealthMobi
+      - PRESCRIPTION_AI_URL=http://prescription_extraction:3002
       # Add other environment variables as needed, or use env_file
       # - JWT_SECRET=your_jwt_secret
       # - CLOUDINARY_CLOUD_NAME=...
