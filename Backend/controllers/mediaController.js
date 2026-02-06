@@ -90,14 +90,21 @@ const uploadPrescription = (req, res) => {
       // Create a promise to handle the socket.io response
       const extractionPromise = new Promise((resolve, reject) => {
         // Set timeout to prevent hanging
+        // Increased to 60 seconds to accommodate image download and AI processing
         const timeout = setTimeout(() => {
           reject(new Error("Prescription extraction timed out"));
-        }, 30000); // 30 second timeout
+        }, 60000); // 60 second timeout
         
         // Listen for the extraction response
         socket.once('prescription_extracted', (data) => {
           clearTimeout(timeout);
           resolve(data);
+        });
+        
+        // Listen for errors from the extraction service
+        socket.once('error', (errorData) => {
+          clearTimeout(timeout);
+          reject(new Error(errorData.message || "Prescription extraction failed"));
         });
         
         // Send the image URL to the AI service

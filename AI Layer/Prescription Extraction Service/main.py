@@ -1,5 +1,8 @@
 import os
 import json
+import base64
+import httpx
+from typing import Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 import socketio
@@ -9,7 +12,7 @@ import eventlet
 load_dotenv()
 
 # Configure OpenAI client (uses OPENAI_API_KEY from .env)
-client = OpenAI()
+client = OpenAI(timeout=60.0)  # Set timeout to 60 seconds
 
 # Create a Socket.IO server
 sio = socketio.Server(cors_allowed_origins="*")
@@ -18,6 +21,44 @@ app = socketio.WSGIApp(sio)
 # Helper Functions
 # Model Configuration
 MODEL_NAME = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
+
+# Image download timeout (in seconds)
+IMAGE_DOWNLOAD_TIMEOUT = 30.0
+
+def download_image_as_base64(image_url: str) -> Tuple[str, str]:
+    """
+    Download an image from a URL and convert it to base64.
+    Returns a tuple of (base64_string, mime_type).
+    """
+    try:
+        print(f"Downloading image from: {image_url}")
+        with httpx.Client(timeout=IMAGE_DOWNLOAD_TIMEOUT) as http_client:
+            response = http_client.get(image_url)
+            response.raise_for_status()
+            
+            # Determine MIME type from Content-Type header or URL extension
+            content_type = response.headers.get("content-type", "image/jpeg")
+            if not content_type.startswith("image/"):
+                # Fallback: try to determine from URL
+                if image_url.lower().endswith((".png",)):
+                    content_type = "image/png"
+                elif image_url.lower().endswith((".gif",)):
+                    content_type = "image/gif"
+                elif image_url.lower().endswith((".webp",)):
+                    content_type = "image/webp"
+                else:
+                    content_type = "image/jpeg"
+            
+            # Convert to base64
+            image_base64 = base64.b64encode(response.content).decode("utf-8")
+            print(f"Image downloaded successfully. Size: {len(response.content)} bytes, Type: {content_type}")
+            return image_base64, content_type
+    except httpx.TimeoutException:
+        raise Exception(f"Timeout while downloading image from {image_url}")
+    except httpx.HTTPStatusError as e:
+        raise Exception(f"HTTP error {e.response.status_code} while downloading image: {e.response.text}")
+    except Exception as e:
+        raise Exception(f"Failed to download image: {str(e)}")
 
 # Extraction Prompt
 EXTRACTION_PROMPT = """Extract the key details about the prescribed medications from the text and structure them in JSON format. Follow these rules for extraction:
@@ -105,6 +146,13 @@ def handle_prescription_extraction(sid, image_url):
 
     # Generate response from the model
     try:
+        # Download image and convert to base64
+        image_base64, mime_type = download_image_as_base64(image_url)
+        
+        # Create data URL for OpenAI API
+        data_url = f"data:{mime_type};base64,{image_base64}"
+        
+        print("Sending image to OpenAI API...")
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -112,7 +160,7 @@ def handle_prescription_extraction(sid, image_url):
                     "role": "user",
                     "content": [
                         {"type": "text", "text": EXTRACTION_PROMPT},
-                        {"type": "image_url", "image_url": {"url": image_url}},
+                        {"type": "image_url", "image_url": {"url": data_url}},
                     ],
                 }
             ],
@@ -135,13 +183,18 @@ def handle_prescription_extraction(sid, image_url):
         sio.emit("prescription_extracted", parsed_response, to=sid)
     except json.JSONDecodeError as e:
         print(f"JSON Parsing Error: {e}")
-        sio.emit("error", {
-            "message": "Could not parse the model's response.",
-            "raw_response": cleaned_response
-        }, to=sid)
+        error_message = "Could not parse the model's response."
+        if 'cleaned_response' in locals():
+            sio.emit("error", {
+                "message": error_message,
+                "raw_response": cleaned_response
+            }, to=sid)
+        else:
+            sio.emit("error", {"message": error_message}, to=sid)
     except Exception as e:
         print(f"Unexpected Error: {e}")
-        sio.emit("error", {"message": "Failed to process prescription."}, to=sid)
+        error_message = str(e) if str(e) else "Failed to process prescription."
+        sio.emit("error", {"message": error_message}, to=sid)
 
 @sio.event
 def disconnect(sid):
