@@ -1,5 +1,6 @@
 const connection = require('../db.js');
 const moment = require('moment-timezone');
+const { loadTodaysIntakes } = require('../cronJobs/medicineIntakeNotifier.js');
 moment.tz.setDefault('Asia/Kolkata');
 
 const deleteAllCourses = (req, res) => {
@@ -85,8 +86,7 @@ const setIntakeIn1Min = (req, res) => {
         (fetchErr, fetchResults) => {
           if (fetchErr) {
             console.error('[DEV] Error fetching updated intake:', fetchErr);
-            // Still return success even if fetch fails
-            return res.json({
+            const fallbackPayload = {
               message: 'Intake scheduled time updated successfully',
               intake_id: intakeId,
               medicine_name: intake.medicine_name,
@@ -95,7 +95,11 @@ const setIntakeIn1Min = (req, res) => {
               old_scheduled_at: oldScheduledAt,
               new_scheduled_at_ist: oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
               note: 'Please verify the actual stored time in database'
-            });
+            };
+            loadTodaysIntakes()
+              .then(() => res.json({ ...fallbackPayload, notifications_reloaded: true }))
+              .catch(() => res.json({ ...fallbackPayload, notifications_reloaded: false }));
+            return;
           }
           
           // Convert the stored UTC time back to IST for display
@@ -104,7 +108,7 @@ const setIntakeIn1Min = (req, res) => {
           
           console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
           
-          res.json({
+          const payload = {
             message: 'Intake scheduled time updated successfully',
             intake_id: intakeId,
             medicine_name: intake.medicine_name,
@@ -115,7 +119,18 @@ const setIntakeIn1Min = (req, res) => {
             new_scheduled_at_ist: oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
             new_scheduled_at_raw_utc: fetchResults[0].scheduled_at,
             updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
-          });
+          };
+
+          // Reload today's intakes in the notifier (same as startup) so the new time is used for notifications
+          loadTodaysIntakes()
+            .then(() => {
+              console.log('[DEV] Notifications buffer reloaded after intake-in-1min');
+              res.json({ ...payload, notifications_reloaded: true });
+            })
+            .catch((reloadErr) => {
+              console.error('[DEV] Failed to reload notifications:', reloadErr);
+              res.json({ ...payload, notifications_reloaded: false });
+            });
         }
       );
     });
