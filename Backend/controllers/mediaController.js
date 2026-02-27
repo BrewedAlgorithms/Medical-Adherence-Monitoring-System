@@ -5,6 +5,8 @@ const fs = require("fs");
 const cloudinary = require("cloudinary").v2;
 const io = require('socket.io-client');
 require('dotenv').config();
+const moment = require('moment-timezone');
+moment.tz.setDefault('Asia/Kolkata');
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -325,7 +327,26 @@ const confirmPrescription = (req, res) => {
             [medicineCourseValues]
           );
 
-          // 2d. Create medicine intakes for each medicine course
+          // 2d. Fetch user's medication times
+          const userTimesResult = await queryAsyncWithConn(
+            txConn,
+            "SELECT * FROM MedicationTimes WHERE user_id = ?",
+            [user_id]
+          );
+
+          const usertimes = userTimesResult.length > 0 ? {
+            morning_time: userTimesResult[0].morning_time,
+            afternoon_time: userTimesResult[0].afternoon_time,
+            evening_time: userTimesResult[0].evening_time,
+            night_time: userTimesResult[0].night_time
+          } : {
+            morning_time: "08:00:00",
+            afternoon_time: "12:00:00",
+            evening_time: "18:00:00",
+            night_time: "22:00:00"
+          };
+
+          // 2e. Create medicine intakes for each medicine course
           let medicineIntakesCreated = 0;
 
           for (let i = 0; i < extractionData.medicineCourses.length; i++) {
@@ -340,16 +361,18 @@ const confirmPrescription = (req, res) => {
               const formattedDate = currentDate.toISOString().split("T")[0];
 
               const times = [
-                { hour: "08:00:00", flag: 0 },
-                { hour: "12:00:00", flag: 1 },
-                { hour: "18:00:00", flag: 2 },
-                { hour: "22:00:00", flag: 3 }
+                { hour: usertimes.morning_time, flag: 0 },
+                { hour: usertimes.afternoon_time, flag: 1 },
+                { hour: usertimes.evening_time, flag: 2 },
+                { hour: usertimes.night_time, flag: 3 }
               ];
 
               times.forEach(({ hour, flag }) => {
                 if (medicine.frequency[flag] === "1") {
-                  const datetime = `${formattedDate} ${hour}`;
                   const beforeafter = medicine.medtype === "0" ? 0 : 1;
+                  const baseTime = moment(`${formattedDate} ${hour}`, 'YYYY-MM-DD HH:mm:ss');
+                  if (beforeafter === 1) baseTime.add(30, 'minutes');
+                  const datetime = baseTime.format('YYYY-MM-DD HH:mm:ss');
                   intakeValues.push([medicine_course_id, datetime, beforeafter]);
                 }
               });
@@ -367,7 +390,7 @@ const confirmPrescription = (req, res) => {
             }
           }
 
-          // 2e. Mark draft as confirmed
+          // 2f. Mark draft as confirmed
           await queryAsyncWithConn(
             txConn,
             "UPDATE PrescriptionDrafts SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE draft_id = ?",
