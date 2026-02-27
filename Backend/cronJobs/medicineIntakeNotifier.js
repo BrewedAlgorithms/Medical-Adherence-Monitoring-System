@@ -23,7 +23,7 @@ const PHONE_NUMBER = "8055301261"; // Default or from env
 
 // Array of enabled box numbers (zero-based)
 // Modify this array to enable/disable specific boxes
-const ENABLED_BOXES = [1, 4]; // All boxes enabled by default
+const ENABLED_BOXES = [1, 3]; // All boxes enabled by default
 
 // Register a message handler to listen for client responses
 registerMessageHandler((message, sender) => {
