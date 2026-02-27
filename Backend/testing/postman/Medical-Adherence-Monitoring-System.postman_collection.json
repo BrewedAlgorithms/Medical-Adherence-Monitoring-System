@@ -1447,6 +1447,83 @@
 						"description": "[DEV ONLY] GET alias for Set Intake In 1 Min. Same behavior as the POST method. No authentication required."
 					},
 					"response": []
+				},
+				{
+					"name": "Set Intake In 30 Sec (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has intake details\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('intake_id');",
+									"    pm.expect(json).to.have.property('medicine_name');",
+									"    pm.expect(json).to.have.property('new_scheduled_at');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/intake-in-30sec",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"intake-in-30sec"
+							]
+						},
+						"description": "[DEV ONLY] Reschedule the first upcoming intake for today to 30 seconds from now. Useful for testing notifications. Also reloads the notification buffer. No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Set Intake In 30 Sec Multiple (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has intakes array\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('intakes');",
+									"    pm.expect(json).to.have.property('updated');",
+									"    pm.expect(json).to.have.property('requested');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/intake-in-30sec/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"intake-in-30sec",
+								"2"
+							]
+						},
+						"description": "[DEV ONLY] Reschedule N upcoming intakes for today to 30 seconds from now. Replace the last path segment with the desired count (e.g. /2 for 2 intakes). Reloads the notification buffer. No authentication required."
+					},
+					"response": []
 				}
 			],
 			"description": "Development-only endpoints for testing. These do NOT require authentication and should NOT be used in production."

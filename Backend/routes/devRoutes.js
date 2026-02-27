@@ -8,5 +8,6 @@ router.get('/delete-all-courses', devController.deleteAllCourses);
 router.post('/intake-in-1min', devController.setIntakeIn1Min);
 router.get('/intake-in-1min', devController.setIntakeIn1Min);
 router.get('/intake-in-30sec', devController.setIntakeIn30Sec);
+router.get('/intake-in-30sec/:count', devController.setIntakeIn30SecMultiple);
 
 module.exports = router;

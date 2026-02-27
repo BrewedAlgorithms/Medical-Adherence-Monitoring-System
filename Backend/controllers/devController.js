@@ -242,4 +242,136 @@ const setIntakeIn30Sec = (req, res) => {
   });
 };
 
-module.exports = { deleteAllCourses, setIntakeIn1Min, setIntakeIn30Sec };
+const setIntakeIn30SecMultiple = (req, res) => {
+  const count = parseInt(req.params.count, 10);
+  if (isNaN(count) || count < 1) {
+    return res.status(400).json({ error: 'count must be a positive integer' });
+  }
+
+  const today = moment().format('YYYY-MM-DD');
+  const thirtySecFromNowIST = moment().add(30, 'seconds');
+  const thirtySecFromNowUTC = thirtySecFromNowIST.clone().utc();
+  const thirtySecFromNowMySQL = thirtySecFromNowUTC.format('YYYY-MM-DD HH:mm:ss');
+
+  const findQuery = `
+    SELECT mi.intake_id, mi.scheduled_at, mi.medicine_course_id,
+           mc.medicine_name, c.user_id, c.course_id
+    FROM MedicineIntakes mi
+    JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
+    JOIN Courses c ON mc.course_id = c.course_id
+    WHERE mi.taken_at IS NULL
+    ORDER BY mi.scheduled_at ASC
+  `;
+
+  connection.query(findQuery, [], (err, results) => {
+    if (err) {
+      console.error('[DEV] Error finding intakes:', err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    const todayIntakes = results.filter(intake => {
+      const scheduledDate = moment(intake.scheduled_at).format('YYYY-MM-DD');
+      return scheduledDate === today;
+    });
+
+    if (todayIntakes.length === 0) {
+      return res.status(404).json({
+        message: 'No upcoming intakes found for today',
+        date: today
+      });
+    }
+
+    const intakesToUpdate = todayIntakes.slice(0, count);
+
+    if (intakesToUpdate.length < count) {
+      console.log(`[DEV] Requested ${count} intakes but only ${intakesToUpdate.length} available for today`);
+    }
+
+    // Update all selected intakes to 30 seconds from now
+    const updatePromises = intakesToUpdate.map((intake, index) => {
+      return new Promise((resolve, reject) => {
+        const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
+
+        const updateQuery = `
+          UPDATE MedicineIntakes
+          SET scheduled_at = ?
+          WHERE intake_id = ?
+        `;
+
+        connection.query(updateQuery, [thirtySecFromNowMySQL, intake.intake_id], (updateErr) => {
+          if (updateErr) {
+            console.error(`[DEV] Error updating intake ${intake.intake_id}:`, updateErr);
+            return reject(updateErr);
+          }
+
+          connection.query(
+            'SELECT scheduled_at FROM MedicineIntakes WHERE intake_id = ?',
+            [intake.intake_id],
+            (fetchErr, fetchResults) => {
+              if (fetchErr) {
+                return resolve({
+                  intake_id: intake.intake_id,
+                  medicine_name: intake.medicine_name,
+                  user_id: intake.user_id,
+                  course_id: intake.course_id,
+                  old_scheduled_at: oldScheduledAt,
+                  new_scheduled_at_ist: thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
+                  note: 'Please verify the actual stored time in database'
+                });
+              }
+
+              const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
+              const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
+
+              console.log(`[DEV] Updated intake ${intake.intake_id} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
+
+              resolve({
+                intake_id: intake.intake_id,
+                medicine_name: intake.medicine_name,
+                user_id: intake.user_id,
+                course_id: intake.course_id,
+                old_scheduled_at: oldScheduledAt,
+                new_scheduled_at: updatedScheduledAtIST,
+                new_scheduled_at_ist: thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
+                new_scheduled_at_raw_utc: fetchResults[0].scheduled_at
+              });
+            }
+          );
+        });
+      });
+    });
+
+    Promise.all(updatePromises)
+      .then((updatedIntakes) => {
+        loadTodaysIntakes()
+          .then(() => {
+            console.log(`[DEV] Notifications buffer reloaded after intake-in-30sec/${count}`);
+            res.json({
+              message: `${updatedIntakes.length} intake(s) scheduled time updated successfully`,
+              requested: count,
+              updated: updatedIntakes.length,
+              intakes: updatedIntakes,
+              notifications_reloaded: true,
+              updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+            });
+          })
+          .catch((reloadErr) => {
+            console.error('[DEV] Failed to reload notifications:', reloadErr);
+            res.json({
+              message: `${updatedIntakes.length} intake(s) scheduled time updated successfully`,
+              requested: count,
+              updated: updatedIntakes.length,
+              intakes: updatedIntakes,
+              notifications_reloaded: false,
+              updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+            });
+          });
+      })
+      .catch((err) => {
+        console.error('[DEV] Error updating multiple intakes:', err);
+        res.status(500).json({ error: err.message });
+      });
+  });
+};
+
+module.exports = { deleteAllCourses, setIntakeIn1Min, setIntakeIn30Sec, setIntakeIn30SecMultiple };
