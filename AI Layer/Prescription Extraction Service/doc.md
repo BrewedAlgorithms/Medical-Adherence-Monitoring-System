@@ -33,14 +33,20 @@ The Prescription Extraction Service is an AI-powered microservice responsible fo
 - Processes multimodal content (images + text prompts)
 - Extracts structured data from prescription images
 
-### Data Flow
+### Data Flow (Human-in-the-Loop)
+
+**Phase 1 — Extraction & Draft**
 1. Backend uploads prescription image to Cloudinary
 2. Backend sends Cloudinary URL to Prescription Extraction Service via Socket.IO
 3. Service downloads image from Cloudinary
-4. Service uploads image to Gemini AI with extraction prompt
-5. Gemini AI extracts structured data from the image
-6. Service parses and validates the AI response
-7. Service sends structured data back to backend via Socket.IO
+4. Service sends image + prompt to OpenAI Vision model
+5. OpenAI returns structured JSON data
+6. Service emits structured data back to backend via Socket.IO
+7. Backend saves data as a `PrescriptionDrafts` row (`status = pending`) and returns `{ draft_id, extracted_data, image_url }` to the client
+
+**Phase 2 — Human Review & Confirm**
+8. Human views the draft (`GET /prescriptionDraft/:draft_id`) and may edit it (`PUT /prescriptionDraft/:draft_id`)
+9. Human confirms (`POST /prescriptionDraft/:draft_id/confirm`) → backend runs transaction to insert `Courses`, `MedicineCourses`, `MedicineIntakes`, marks draft `confirmed`
 
 ## Key Functions
 

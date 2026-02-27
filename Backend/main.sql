@@ -93,6 +93,19 @@ CREATE TABLE PrescriptionVoiceNotes (
   FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
 );
 
+-- Holds AI-extracted prescription data pending human review.
+-- The human can edit extracted_data before confirming (which triggers the real DB commit).
+CREATE TABLE PrescriptionDrafts (
+  draft_id       INT PRIMARY KEY AUTO_INCREMENT,
+  user_id        INT NOT NULL,
+  image_url      VARCHAR(512) NOT NULL,
+  extracted_data JSON NOT NULL,
+  status         ENUM('pending', 'confirmed', 'rejected') NOT NULL DEFAULT 'pending',
+  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
 CREATE TABLE UserNotes (
   note_id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL unique,
@@ -166,6 +179,7 @@ INSERT INTO MediQuotes (quote, language) VALUES
 -- TRUNCATE TABLE QuoteOfTheDay;
 -- TRUNCATE TABLE PrescriptionImages;
 -- TRUNCATE TABLE PrescriptionVoiceNotes;
+-- TRUNCATE TABLE PrescriptionDrafts;
 -- TRUNCATE TABLE UserNotes;
 
 
@@ -179,6 +193,7 @@ SELECT * FROM MediQuotes;
 SELECT * FROM QuoteOfTheDay;
 SELECT * FROM PrescriptionImages;
 SELECT * FROM PrescriptionVoiceNotes;
+SELECT * FROM PrescriptionDrafts;
 SELECT * FROM UserNotes;
 
 
