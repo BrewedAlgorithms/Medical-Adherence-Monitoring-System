@@ -109,7 +109,18 @@ const migrations = [
     KEY idx_medication_times_user_id (user_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS PrescriptionDrafts (
+    draft_id       INT PRIMARY KEY AUTO_INCREMENT,
+    user_id        INT NOT NULL,
+    image_url      VARCHAR(512) NOT NULL,
+    extracted_data JSON NOT NULL,
+    status         ENUM('pending', 'confirmed', 'rejected') NOT NULL DEFAULT 'pending',
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+  )`,
 ];
+
 
 async function runMigrations() {
   try {
