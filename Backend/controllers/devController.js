@@ -49,7 +49,7 @@ const setIntakeIn1Min = (req, res) => {
 
     // Filter results to find first intake scheduled for today (in IST)
     const todayIntakes = results.filter(intake => {
-      const scheduledDate = moment(intake.scheduled_at).format('YYYY-MM-DD');
+      const scheduledDate = moment.utc(intake.scheduled_at).format('YYYY-MM-DD');
       return scheduledDate === today;
     });
 
@@ -62,9 +62,9 @@ const setIntakeIn1Min = (req, res) => {
 
     const intake = todayIntakes[0];
     const intakeId = intake.intake_id;
-    const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
+    const oldScheduledAt = moment.utc(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
-    // Update the intake to 1 minute from now (stored as UTC in MySQL)
+    // Update the intake to 1 minute from now
     const updateQuery = `
       UPDATE MedicineIntakes 
       SET scheduled_at = ? 
@@ -100,7 +100,7 @@ const setIntakeIn1Min = (req, res) => {
             return;
           }
 
-          const updatedScheduledAtIST = moment(fetchResults[0].scheduled_at).format('YYYY-MM-DD HH:mm:ss');
+          const updatedScheduledAtIST = moment.utc(fetchResults[0].scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
           console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
 
@@ -153,7 +153,7 @@ const setIntakeIn30Sec = (req, res) => {
     }
 
     const todayIntakes = results.filter(intake => {
-      const scheduledDate = moment(intake.scheduled_at).format('YYYY-MM-DD');
+      const scheduledDate = moment.utc(intake.scheduled_at).format('YYYY-MM-DD');
       return scheduledDate === today;
     });
 
@@ -166,7 +166,7 @@ const setIntakeIn30Sec = (req, res) => {
 
     const intake = todayIntakes[0];
     const intakeId = intake.intake_id;
-    const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
+    const oldScheduledAt = moment.utc(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
     const updateQuery = `
       UPDATE MedicineIntakes
@@ -202,8 +202,7 @@ const setIntakeIn30Sec = (req, res) => {
             return;
           }
 
-          const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
-          const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
+          const updatedScheduledAtIST = moment.utc(fetchResults[0].scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
           console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
 
@@ -260,7 +259,7 @@ const setIntakeIn30SecMultiple = (req, res) => {
     }
 
     const todayIntakes = results.filter(intake => {
-      const scheduledDate = moment(intake.scheduled_at).format('YYYY-MM-DD');
+      const scheduledDate = moment.utc(intake.scheduled_at).format('YYYY-MM-DD');
       return scheduledDate === today;
     });
 
@@ -280,7 +279,7 @@ const setIntakeIn30SecMultiple = (req, res) => {
     // Update all selected intakes to 30 seconds from now
     const updatePromises = intakesToUpdate.map((intake, index) => {
       return new Promise((resolve, reject) => {
-        const oldScheduledAt = moment(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
+        const oldScheduledAt = moment.utc(intake.scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
         const updateQuery = `
           UPDATE MedicineIntakes
@@ -310,8 +309,7 @@ const setIntakeIn30SecMultiple = (req, res) => {
                 });
               }
 
-              const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
-              const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
+              const updatedScheduledAtIST = moment.utc(fetchResults[0].scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
               console.log(`[DEV] Updated intake ${intake.intake_id} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
 
