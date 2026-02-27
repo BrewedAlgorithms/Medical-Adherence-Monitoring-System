@@ -835,6 +835,99 @@
 						"description": "Update or create user notes."
 					},
 					"response": []
+				},
+				{
+					"name": "Get Medication Times",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/user-feature/medication-times",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user-feature",
+								"medication-times"
+							]
+						},
+						"description": "Get user default medication times."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Medication Times",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": 1,\n    \"morning_time\": \"08:30:00\",\n    \"afternoon_time\": \"13:15:00\",\n    \"evening_time\": \"18:45:00\",\n    \"night_time\": \"22:30:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/user-feature/medication-times",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user-feature",
+								"medication-times"
+							]
+						},
+						"description": "Update user default medication times."
+					},
+					"response": []
 				}
 			],
 			"description": "User-specific features endpoints"

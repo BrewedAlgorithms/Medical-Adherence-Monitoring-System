@@ -231,8 +231,88 @@ const getUserProfile = (req, res) => {
 }
 
 
+// Get user medication times
+const getMedicationTimes = (req, res) => {
+    // Usually user_id comes from auth middleware via req.user or res.locals.user
+    // But aligning with other functions in this file, we get it from req.body
+    const { user_id } = req.body;
+
+    if (!user_id) {
+        return res.status(400).json({ error: "user_id is required" });
+    }
+
+    const query = "SELECT morning_time, afternoon_time, evening_time, night_time FROM MedicationTimes WHERE user_id = ?";
+    connection.query(query, [user_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error", details: err });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Medication times not found for this user" });
+        }
+
+        return res.status(200).json(results[0]);
+    });
+};
+
+// Update user medication times
+const updateMedicationTimes = (req, res) => {
+    const { user_id, morning_time, afternoon_time, evening_time, night_time } = req.body;
+
+    if (!user_id) {
+        return res.status(400).json({ error: "user_id is required" });
+    }
+
+    // Validate time format (HH:MM:SS or HH:MM)
+    const timeRegex = /^([01]\d|2[0-3]):?([0-5]\d)(:?([0-5]\d))?$/;
+
+    if (morning_time && !timeRegex.test(morning_time)) return res.status(400).json({ error: "Invalid morning_time format. Use HH:MM:SS" });
+    if (afternoon_time && !timeRegex.test(afternoon_time)) return res.status(400).json({ error: "Invalid afternoon_time format. Use HH:MM:SS" });
+    if (evening_time && !timeRegex.test(evening_time)) return res.status(400).json({ error: "Invalid evening_time format. Use HH:MM:SS" });
+    if (night_time && !timeRegex.test(night_time)) return res.status(400).json({ error: "Invalid night_time format. Use HH:MM:SS" });
+
+    // Build dynamic update query
+    let updates = [];
+    let params = [];
+
+    if (morning_time) { updates.push("morning_time = ?"); params.push(morning_time); }
+    if (afternoon_time) { updates.push("afternoon_time = ?"); params.push(afternoon_time); }
+    if (evening_time) { updates.push("evening_time = ?"); params.push(evening_time); }
+    if (night_time) { updates.push("night_time = ?"); params.push(night_time); }
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: "No fields to update provided" });
+    }
+
+    // Add user_id to params for WHERE clause
+    params.push(user_id);
+
+    const checkQuery = "SELECT time_id FROM MedicationTimes WHERE user_id = ?";
+    connection.query(checkQuery, [user_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error", details: err });
+        }
+
+        if (results.length > 0) {
+            const updateQuery = `UPDATE MedicationTimes SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`;
+            connection.query(updateQuery, params, (updateErr) => {
+                if (updateErr) {
+                    return res.status(500).json({ error: "Failed to update medication times", details: updateErr });
+                }
+                return res.status(200).json({ message: "Medication times updated successfully" });
+            });
+        } else {
+            // Edge case: if User was created before MedicationTimes table existed or it was deleted
+            // Note: For INSERT we need all 4 values or rely on DB defaults if missing
+            return res.status(404).json({ error: "Medication times record not found for this user. Please contact support." });
+        }
+    });
+};
+
 module.exports = {
     updateUserNotes,
     getUserNotes,
-    getUserProfile
+    getUserProfile,
+    getMedicationTimes,
+    updateMedicationTimes
 };
