@@ -13,6 +13,7 @@ services:
     env_file:
       - .env
     environment:
+      - TZ=Asia/Kolkata
       - PORT=3001
       - DB_HOST=db
       - DB_USER=root
@@ -42,6 +43,7 @@ services:
     ports:
       - "3306:3306"
     environment:
+      - TZ=Asia/Kolkata
       - MYSQL_ROOT_PASSWORD=rootpassword
       - MYSQL_DATABASE=HealthMobi
     volumes:

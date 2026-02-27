@@ -277,9 +277,9 @@ const getTodaysSchedule = (req, res) => {
     return res.status(400).json({ message: "User ID is required" });
   }
 
-  // Get current time in UTC (matches how mysql driver interprets DB datetimes)
-  const now = moment.utc();
-  console.log(now.format('YYYY-MM-DD HH:mm:ss')); // Logs time for debugging
+  // Get current time for status determination
+  const now = moment();
+  console.log(now.format('YYYY-MM-DD HH:mm:ss'));
 
   // Query to get medication intakes for the specified user on the requested date
   const query = `SELECT mi.intake_id, mc.medicine_course_id, mc.course_id, mc.medicine_name, 
@@ -303,11 +303,10 @@ const getTodaysSchedule = (req, res) => {
     let takeNowIntakes = 0;
 
     const intakes = results.map(item => {
-      // Use moment.utc to get raw DB time without timezone conversion
-      const scheduledTime = moment.utc(item.scheduled_at);
+      const scheduledTime = moment(item.scheduled_at);
 
       // Add 30 minutes to scheduled time for TakeNow window
-      const takeNowWindow = moment.utc(scheduledTime).add(30, 'minutes');
+      const takeNowWindow = moment(scheduledTime).add(30, 'minutes');
 
       let status = 'Upcoming';
 
@@ -329,8 +328,8 @@ const getTodaysSchedule = (req, res) => {
         medicine_name: item.medicine_name,
         medicine_course_id: item.medicine_course_id,
         course_id: item.course_id,
-        scheduled_at: moment.utc(item.scheduled_at).format('YYYY-MM-DD HH:mm:ss'),
-        taken_at: item.taken_at ? moment.utc(item.taken_at).format('YYYY-MM-DD HH:mm:ss') : null,
+        scheduled_at: moment(item.scheduled_at).format('YYYY-MM-DD HH:mm:ss'),
+        taken_at: item.taken_at ? moment(item.taken_at).format('YYYY-MM-DD HH:mm:ss') : null,
         status: status,
         timing: item.beforeafter === 0 ? 'Before meal' : 'After meal',
         medtype: item.medtype === '0' ? 'Pill' : 'Liquid',
