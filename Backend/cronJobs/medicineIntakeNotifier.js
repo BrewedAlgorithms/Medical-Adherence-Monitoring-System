@@ -21,6 +21,53 @@ const NOTIFICATION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
 const MAX_BATCH_SIZE = 4; // Maximum number of intakes to batch together
 const PHONE_NUMBER = "8055301261"; // Default or from env
 
+/**
+ * Decrement pill_stock for a medicine course after a pill is taken,
+ * and send a WhatsApp restock alert if stock <= 2.
+ */
+const decrementAndCheckStock = (intakeId) => {
+  connection.query(
+    `SELECT mi.medicine_course_id, mc.medicine_name, mc.pill_stock
+     FROM MedicineIntakes mi
+     JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
+     WHERE mi.intake_id = ?`,
+    [intakeId],
+    (err, rows) => {
+      if (err || !rows || rows.length === 0) return;
+
+      const { medicine_course_id, medicine_name, pill_stock } = rows[0];
+      const newStock = Math.max(0, pill_stock - 1);
+
+      connection.query(
+        `UPDATE MedicineCourses SET pill_stock = ? WHERE medicine_course_id = ?`,
+        [newStock, medicine_course_id],
+        (updateErr) => {
+          if (updateErr) {
+            console.error(`Error decrementing pill_stock for ${medicine_name}:`, updateErr);
+            return;
+          }
+
+          console.log(`pill_stock for ${medicine_name}: ${pill_stock} → ${newStock}`);
+
+          if (newStock <= 2) {
+            connection.query(
+              `SELECT COUNT(*) as remaining FROM MedicineIntakes
+               WHERE medicine_course_id = ? AND taken_at IS NULL AND scheduled_at > NOW()`,
+              [medicine_course_id],
+              (countErr, countRows) => {
+                const remaining = (!countErr && countRows && countRows[0]) ? countRows[0].remaining : '?';
+                const msg = `⚠️ Low stock alert! You only have ${newStock} pill(s) of *${medicine_name}* left. You still need ${remaining} more pill(s) to complete the course. Please refill soon!`;
+                console.log(`Restock alert: ${msg}`);
+                sendMessage(msg, PHONE_NUMBER);
+              }
+            );
+          }
+        }
+      );
+    }
+  );
+};
+
 // Array of enabled box numbers (zero-based)
 // Modify this array to enable/disable specific boxes
 const ENABLED_BOXES = [1, 3]; // All boxes enabled by default
@@ -87,6 +134,9 @@ const markIntakeAsTaken = (intakeId) => {
         return;
       }
       console.log(`Marked intake ${intakeId} as taken`);
+
+      // Decrement pill stock and check for restock alert
+      decrementAndCheckStock(intakeId);
 
       // Remove this intake from today's intakes to avoid duplicate notifications
       const intakeIndex = todaysIntakes.findIndex(intake => intake.intake_id === intakeId);

@@ -2,8 +2,11 @@ const { schedule } = require("node-cron");
 const connection = require("../db.js");
 const { authUser } = require("../middlewares/authUser.js");
 const { use } = require("../routes/userFeaturesRoutes.js");
+const { sendMessage } = require('../twilio.js');
 const moment = require('moment-timezone');
 moment.tz.setDefault('Asia/Kolkata');
+
+const PHONE_NUMBER = "8055301261";
 
 // *** db schema comments kept intact ***
 
@@ -483,6 +486,7 @@ const getMedicationCourses = (req, res) => {
       mc.end_date as medicine_end_date,
       mc.frequency,
       mc.medtype,
+      mc.pill_stock,
       mc.created_at as medicine_created_at,
       mc.updated_at as medicine_updated_at,
       (SELECT name FROM Users WHERE user_id = c.doctor_id) as doctor_name
@@ -534,7 +538,7 @@ const getMedicationCourses = (req, res) => {
           end_date: row.medicine_end_date,
           frequency: row.frequency,
           medtype: row.medtype,
-          pillcount: 1,
+          pill_stock: row.pill_stock,
           created_at: row.medicine_created_at,
           updated_at: row.medicine_updated_at
         });
@@ -624,6 +628,9 @@ const takeMedicine = (req, res) => {
         return res.status(404).json({ message: "Intake not found" });
       }
 
+      // Decrement pill stock and check for restock alert
+      decrementAndCheckStock(intake_id);
+
       res.status(200).json({
         message: "Medication marked as taken",
         taken_at: currentTime
@@ -677,6 +684,19 @@ const syncTodayIntake = (req, res) => {
               console.error(`Error updating intake for time ${time}:`, err);
             } else if (results.affectedRows > 0) {
               successCount++;
+              // Decrement pill stock for all affected intakes at this time
+              connection.query(
+                `SELECT mi.intake_id FROM MedicineIntakes mi
+                 JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
+                 JOIN Courses c ON mc.course_id = c.course_id
+                 WHERE c.user_id = ? AND DATE(mi.scheduled_at) = ? AND TIME(mi.scheduled_at) = ?`,
+                [user_id, today, time],
+                (lookupErr, intakeRows) => {
+                  if (!lookupErr && intakeRows) {
+                    intakeRows.forEach(row => decrementAndCheckStock(row.intake_id));
+                  }
+                }
+              );
             }
 
             // Check if all intakes have been processed
@@ -700,6 +720,109 @@ const syncTodayIntake = (req, res) => {
   }
 };
 
+/**
+ * Decrement pill_stock for a medicine course after a pill is taken,
+ * and send a WhatsApp restock alert if stock <= 2.
+ */
+const decrementAndCheckStock = (intakeId) => {
+  // 1. Get the medicine_course_id for this intake
+  connection.query(
+    `SELECT mi.medicine_course_id, mc.medicine_name, mc.pill_stock
+     FROM MedicineIntakes mi
+     JOIN MedicineCourses mc ON mi.medicine_course_id = mc.medicine_course_id
+     WHERE mi.intake_id = ?`,
+    [intakeId],
+    (err, rows) => {
+      if (err || !rows || rows.length === 0) return;
+
+      const { medicine_course_id, medicine_name, pill_stock } = rows[0];
+
+      // 2. Decrement pill_stock (floor at 0)
+      const newStock = Math.max(0, pill_stock - 1);
+      connection.query(
+        `UPDATE MedicineCourses SET pill_stock = ? WHERE medicine_course_id = ?`,
+        [newStock, medicine_course_id],
+        (updateErr) => {
+          if (updateErr) {
+            console.error(`Error decrementing pill_stock for medicine_course_id ${medicine_course_id}:`, updateErr);
+            return;
+          }
+
+          console.log(`pill_stock for ${medicine_name} (id=${medicine_course_id}): ${pill_stock} → ${newStock}`);
+
+          // 3. If stock <= 2 after taking, send restock alert
+          if (newStock <= 2) {
+            // Count remaining untaken intakes to tell user how many more pills they need
+            connection.query(
+              `SELECT COUNT(*) as remaining FROM MedicineIntakes
+               WHERE medicine_course_id = ? AND taken_at IS NULL AND scheduled_at > NOW()`,
+              [medicine_course_id],
+              (countErr, countRows) => {
+                const remaining = (!countErr && countRows && countRows[0]) ? countRows[0].remaining : '?';
+                const msg = `⚠️ Low stock alert! You only have ${newStock} pill(s) of *${medicine_name}* left. You still need ${remaining} more pill(s) to complete the course. Please refill soon!`;
+                console.log(`Restock alert: ${msg}`);
+                sendMessage(msg, PHONE_NUMBER);
+              }
+            );
+          }
+        }
+      );
+    }
+  );
+};
+
+/**
+ * PUT /course/pill-stock
+ * Update the pill stock for a specific medicine course.
+ * Body: { medicine_course_id, pill_stock }
+ */
+const updatePillStock = (req, res) => {
+  const { user_id, medicine_course_id, pill_stock } = req.body;
+
+  if (!user_id || !medicine_course_id || pill_stock === undefined || pill_stock === null) {
+    return res.status(400).json({ message: "user_id, medicine_course_id, and pill_stock are required" });
+  }
+
+  if (typeof pill_stock !== 'number' || pill_stock < 0 || !Number.isInteger(pill_stock)) {
+    return res.status(400).json({ message: "pill_stock must be a non-negative integer" });
+  }
+
+  // Validate the medicine course belongs to the user
+  connection.query(
+    `SELECT mc.medicine_course_id FROM MedicineCourses mc
+     JOIN Courses c ON mc.course_id = c.course_id
+     WHERE mc.medicine_course_id = ? AND c.user_id = ?`,
+    [medicine_course_id, user_id],
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Error validating medicine course" });
+      }
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: "Medicine course not found for this user" });
+      }
+
+      connection.query(
+        `UPDATE MedicineCourses SET pill_stock = ? WHERE medicine_course_id = ?`,
+        [pill_stock, medicine_course_id],
+        (updateErr, result) => {
+          if (updateErr) {
+            console.error(updateErr);
+            return res.status(500).json({ message: "Error updating pill stock" });
+          }
+
+          res.status(200).json({
+            message: "Pill stock updated successfully",
+            medicine_course_id,
+            pill_stock
+          });
+        }
+      );
+    }
+  );
+};
+
 module.exports = {
   newCourse,
   addMedicineCourse,
@@ -709,5 +832,6 @@ module.exports = {
   getLifetimeMatrix,
   getMedicationCourses,
   takeMedicine,
-  syncTodayIntake
+  syncTodayIntake,
+  updatePillStock
 };

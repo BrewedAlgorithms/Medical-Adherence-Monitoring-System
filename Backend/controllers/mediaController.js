@@ -387,6 +387,13 @@ const confirmPrescription = (req, res) => {
                 [intakeValues]
               );
               medicineIntakesCreated += intakeValues.length;
+
+              // Set default pill stock = total intakes for this medicine (100% pre-filled)
+              await queryAsyncWithConn(
+                txConn,
+                "UPDATE MedicineCourses SET pill_stock = ? WHERE medicine_course_id = ?",
+                [intakeValues.length, medicine_course_id]
+              );
             }
           }
 

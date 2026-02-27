@@ -14,5 +14,6 @@ router.get('/lifetime-matrix', authUser, courseController.getLifetimeMatrix);
 router.get('/medication-courses', authUser, courseController.getMedicationCourses);
 router.post('/take-medicine', authUser, courseController.takeMedicine);
 router.post('/today-intake/sync', authUser, courseController.syncTodayIntake);
+router.put('/pill-stock', authUser, courseController.updatePillStock);
 
 module.exports = router;

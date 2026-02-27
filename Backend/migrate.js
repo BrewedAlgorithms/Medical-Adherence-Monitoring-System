@@ -48,6 +48,7 @@ const migrations = [
     end_date DATE,
     frequency CHAR(4),
     medtype CHAR(1),
+    pill_stock INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
@@ -119,6 +120,8 @@ const migrations = [
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
   )`,
+  // Add pill_stock column to existing MedicineCourses tables
+  `ALTER TABLE MedicineCourses ADD COLUMN IF NOT EXISTS pill_stock INT NOT NULL DEFAULT 0 AFTER medtype`,
 ];
 
 

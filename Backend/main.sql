@@ -47,6 +47,7 @@ CREATE TABLE MedicineCourses (
   end_date DATE,
   frequency CHAR(4),
   medtype CHAR(1),
+  pill_stock INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
