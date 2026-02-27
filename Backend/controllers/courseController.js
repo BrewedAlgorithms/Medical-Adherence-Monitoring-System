@@ -97,8 +97,10 @@ const newCourse = (req, res) => {
 
                       times.forEach(({ hour, flag }) => {
                         if (medicineCourse[5][flag] === "1") {
-                          const datetime = `${formattedDate} ${hour}`;
                           const beforeafter = medicineCourse[6] === "0" ? 0 : 1;
+                          const baseTime = moment(`${formattedDate} ${hour}`, 'YYYY-MM-DD HH:mm:ss');
+                          if (beforeafter === 1) baseTime.add(30, 'minutes');
+                          const datetime = baseTime.format('YYYY-MM-DD HH:mm:ss');
                           intakeValues.push([medicineResults.insertId + index, datetime, beforeafter]);
                         }
                       });
