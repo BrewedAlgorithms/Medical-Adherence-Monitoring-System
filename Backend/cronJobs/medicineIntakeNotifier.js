@@ -31,19 +31,43 @@ registerMessageHandler((message, sender) => {
   if (Array.isArray(message) && message.length) {
     console.log(`Received response array from client ${sender.id}:`, JSON.stringify(message));
 
-    // Process responses - each number represents a box/intake that was taken
+    // Process responses:
+    //   positive number → pill was taken from that box
+    //   negative number → box was empty, pill could not be taken
     message.forEach(boxNumber => {
-      const intakeId = currentBoxToIntakeMapping[boxNumber];
-      if (intakeId) {
-        console.log(`Box ${boxNumber} was taken, corresponding to intake_id ${intakeId}`);
-        markIntakeAsTaken(intakeId);
+      if (boxNumber > 0) {
+        // --- Pill taken flow (existing behavior) ---
+        const intakeId = currentBoxToIntakeMapping[boxNumber];
+        if (intakeId) {
+          console.log(`Box ${boxNumber} was taken, corresponding to intake_id ${intakeId}`);
+          markIntakeAsTaken(intakeId);
 
-        // Remove from active notifications since it's been taken
-        if (activeNotifications.has(intakeId)) {
-          activeNotifications.delete(intakeId);
+          // Remove from active notifications since it's been taken
+          if (activeNotifications.has(intakeId)) {
+            activeNotifications.delete(intakeId);
+          }
+        } else {
+          console.log(`Received unknown box number: ${boxNumber}`);
         }
-      } else {
-        console.log(`Received unknown box number: ${boxNumber}`);
+      } else if (boxNumber < 0) {
+        // --- Empty box flow ---
+        const actualBox = Math.abs(boxNumber);
+        const intakeId = currentBoxToIntakeMapping[actualBox];
+        if (intakeId) {
+          // Look up the medicine name from today's in-memory intakes
+          const intake = todaysIntakes.find(i => i.intake_id === intakeId);
+          const medicineName = intake ? intake.medicine_name : 'your medicine';
+
+          console.warn(`Box ${actualBox} is empty for intake_id ${intakeId} (${medicineName}). Sending refill notification.`);
+
+          // Send WhatsApp refill alert — intake is NOT marked as taken
+          sendMessage(
+            `⚠️ Compartment ${actualBox} is empty! Please refill it with ${medicineName} so you can take your dose.`,
+            PHONE_NUMBER
+          );
+        } else {
+          console.log(`Received empty-box signal for unknown box: ${actualBox}`);
+        }
       }
     });
 
