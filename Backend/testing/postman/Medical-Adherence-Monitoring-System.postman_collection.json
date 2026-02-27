@@ -1010,21 +1010,27 @@
 			"name": "Media",
 			"item": [
 				{
-					"name": "Upload Prescription",
+					"name": "Upload Prescription (Phase 1 — creates draft)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"if (pm.response.code === 201 || pm.response.code === 200) {",
-									"    const responseJson = pm.response.json();",
-									"    if (responseJson.course_id) {",
-									"        pm.collectionVariables.set(\"course_id\", responseJson.course_id);",
-									"        console.log(\"Course ID stored:\", responseJson.course_id);",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response has draft_id\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('draft_id');",
+									"    pm.expect(json).to.have.property('extracted_data');",
+									"    pm.expect(json).to.have.property('image_url');",
+									"});",
+									"if (pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    if (json.draft_id) {",
+									"        pm.collectionVariables.set('draft_id', json.draft_id);",
+									"        console.log('Draft ID stored:', json.draft_id);",
 									"    }",
-									"    pm.test(\"Status code is success\", function () {",
-									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"    });",
 									"}"
 								],
 								"type": "text/javascript"
@@ -1069,7 +1075,7 @@
 								"uploadPrescription"
 							]
 						},
-						"description": "Upload a prescription image. Requires multipart/form-data with 'prescription' file field and 'user_id' field. Returns course_id which is stored in collection variables."
+						"description": "[Phase 1 — Human-in-the-Loop] Upload a prescription image. AI extracts data and saves it as a PENDING DRAFT. Returns draft_id + extracted_data for human review. Does NOT commit to Courses/MedicineCourses yet. draft_id is auto-stored in collection variables."
 					},
 					"response": []
 				},
@@ -1121,51 +1127,222 @@
 						"description": "Upload a voice note for a specific course. Requires multipart/form-data with 'voiceNote' file field. Note: This endpoint does not require authentication."
 					},
 					"response": []
-				}
-			],
-			"description": "Media upload endpoints for prescriptions and voice notes"
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
+				},
+				{
+				"name": "Get Prescription Draft",
+				"event": [
+					{
+						"listen": "test",
+						"script": {
+							"exec": [
+								"pm.test(\"Status code is 200\", function () {",
+								"    pm.response.to.have.status(200);",
+								"});",
+								"pm.test(\"Draft has expected fields\", function () {",
+								"    const json = pm.response.json();",
+								"    pm.expect(json).to.have.property('draft_id');",
+								"    pm.expect(json).to.have.property('status');",
+								"    pm.expect(json).to.have.property('extracted_data');",
+								"    pm.expect(json).to.have.property('image_url');",
+								"    pm.expect(json.status).to.equal('pending');",
+								"});"
+							],
+							"type": "text/javascript"
+						}
+					}
+				],
+				"request": {
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{authToken}}",
+								"type": "string"
+							}
+						]
+					},
+					"method": "GET",
+					"header": [],
+					"url": {
+						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
+						"host": [
+							"{{base_url}}"
+						],
+						"path": [
+							"media",
+							"prescriptionDraft",
+							"{{draft_id}}"
+						]
+					},
+					"description": "[Phase 2 — Human Review] Fetch the pending draft to display AI-extracted data for human review. Uses draft_id stored by Upload Prescription."
+				},
+				"response": []
+			},
+			{
+				"name": "Update Prescription Draft (human corrections)",
+				"event": [
+					{
+						"listen": "test",
+						"script": {
+							"exec": [
+								"pm.test(\"Status code is 200\", function () {",
+								"    pm.response.to.have.status(200);",
+								"});",
+								"pm.test(\"Draft updated successfully\", function () {",
+								"    const json = pm.response.json();",
+								"    pm.expect(json.message).to.include('updated');",
+								"});"
+							],
+							"type": "text/javascript"
+						}
+					}
+				],
+				"request": {
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{authToken}}",
+								"type": "string"
+							}
+						]
+					},
+					"method": "PUT",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"body": {
+						"mode": "raw",
+						"raw": "{\n    \"extracted_data\": {\n        \"doctor_id\": 1,\n        \"start_date\": \"2026-02-27\",\n        \"end_date\": \"2026-03-06\",\n        \"medicineCourses\": [\n            {\n                \"medicine_name\": \"CORRECTED_NAME\",\n                \"start_date\": \"2026-02-27\",\n                \"end_date\": \"2026-03-06\",\n                \"frequency\": \"1010\",\n                \"medtype\": \"1\",\n                \"is_pill\": true,\n                \"dosage\": 8\n            }\n        ]\n    }\n}"
+					},
+					"url": {
+						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
+						"host": [
+							"{{base_url}}"
+						],
+						"path": [
+							"media",
+							"prescriptionDraft",
+							"{{draft_id}}"
+						]
+					},
+					"description": "[Phase 2 — Human Review] Save human corrections to the extracted_data. Send the FULL extracted_data JSON with your corrections applied. Only works on 'pending' drafts."
+				},
+				"response": []
+			},
+			{
+				"name": "Confirm Prescription Draft (Phase 2 — commits to DB)",
+				"event": [
+					{
+						"listen": "test",
+						"script": {
+							"exec": [
+								"pm.test(\"Status code is 201\", function () {",
+								"    pm.response.to.have.status(201);",
+								"});",
+								"pm.test(\"Response has course_id and intake counts\", function () {",
+								"    const json = pm.response.json();",
+								"    pm.expect(json).to.have.property('course_id');",
+								"    pm.expect(json).to.have.property('medicines_created');",
+								"    pm.expect(json).to.have.property('intakes_created');",
+								"});",
+								"if (pm.response.code === 201) {",
+								"    const json = pm.response.json();",
+								"    if (json.course_id) {",
+								"        pm.collectionVariables.set('course_id', json.course_id);",
+								"        console.log('Course ID stored:', json.course_id);",
+								"        console.log('Medicines created:', json.medicines_created);",
+								"        console.log('Intakes created:', json.intakes_created);",
+								"    }",
+								"}"
+							],
+							"type": "text/javascript"
+						}
+					}
+				],
+				"request": {
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{authToken}}",
+								"type": "string"
+							}
+						]
+					},
+					"method": "POST",
+					"header": [],
+					"url": {
+						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}/confirm",
+						"host": [
+							"{{base_url}}"
+						],
+						"path": [
+							"media",
+							"prescriptionDraft",
+							"{{draft_id}}",
+							"confirm"
+						]
+					},
+					"description": "[Phase 2 — Confirm] Human has reviewed the draft. This triggers the real DB transaction: inserts Courses, MedicineCourses, MedicineIntakes and marks draft as 'confirmed'. Returns course_id which is auto-stored in collection variables."
+				},
+				"response": []
 			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
+		],
+		"description": "Media upload endpoints for prescriptions (human-in-the-loop draft flow) and voice notes"
+	}
+],
+"event": [
+	{
+		"listen": "prerequest",
+		"script": {
+			"type": "text/javascript",
+			"exec": [
+				""
+			]
 		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3001",
-			"type": "string"
-		},
-		{
-			"key": "authToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "userId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "course_id",
-			"value": "",
-			"type": "string"
+	},
+	{
+		"listen": "test",
+		"script": {
+			"type": "text/javascript",
+			"exec": [
+				""
+			]
 		}
-	]
+	}
+],
+"variable": [
+	{
+		"key": "base_url",
+		"value": "http://localhost:3001",
+		"type": "string"
+	},
+	{
+		"key": "authToken",
+		"value": "",
+		"type": "string"
+	},
+	{
+		"key": "userId",
+		"value": "",
+		"type": "string"
+	},
+	{
+		"key": "course_id",
+		"value": "",
+		"type": "string"
+	},
+	{
+		"key": "draft_id",
+		"value": "",
+		"type": "string"
+	}
+]
 }
