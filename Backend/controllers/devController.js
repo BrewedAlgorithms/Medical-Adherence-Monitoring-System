@@ -24,10 +24,8 @@ const setIntakeIn1Min = (req, res) => {
   // Create moment object for 1 minute from now in IST
   const oneMinuteFromNowIST = moment().add(1, 'minute');
 
-  // Convert IST time to UTC for MySQL storage
-  // MySQL TIMESTAMP stores in UTC, so we need to convert IST to UTC before inserting
-  const oneMinuteFromNowUTC = oneMinuteFromNowIST.clone().utc();
-  const oneMinuteFromNowMySQL = oneMinuteFromNowUTC.format('YYYY-MM-DD HH:mm:ss');
+  // Format IST time directly for MySQL (DB stores IST)
+  const oneMinuteFromNowMySQL = oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss');
 
   // First, find the first intake scheduled for today (across all users)
   // Order by scheduled_at ASC to get the earliest one
@@ -102,9 +100,7 @@ const setIntakeIn1Min = (req, res) => {
             return;
           }
 
-          // Convert the stored UTC time back to IST for display
-          const updatedScheduledAt = moment(fetchResults[0].scheduled_at);
-          const updatedScheduledAtIST = updatedScheduledAt.format('YYYY-MM-DD HH:mm:ss');
+          const updatedScheduledAtIST = moment(fetchResults[0].scheduled_at).format('YYYY-MM-DD HH:mm:ss');
 
           console.log(`[DEV] Updated intake ${intakeId} from ${oldScheduledAt} to ${updatedScheduledAtIST} (IST)`);
 
@@ -116,8 +112,6 @@ const setIntakeIn1Min = (req, res) => {
             course_id: intake.course_id,
             old_scheduled_at: oldScheduledAt,
             new_scheduled_at: updatedScheduledAtIST,
-            new_scheduled_at_ist: oneMinuteFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
-            new_scheduled_at_raw_utc: fetchResults[0].scheduled_at,
             updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
           };
 
@@ -140,8 +134,7 @@ const setIntakeIn1Min = (req, res) => {
 const setIntakeIn30Sec = (req, res) => {
   const today = moment().format('YYYY-MM-DD');
   const thirtySecFromNowIST = moment().add(30, 'seconds');
-  const thirtySecFromNowUTC = thirtySecFromNowIST.clone().utc();
-  const thirtySecFromNowMySQL = thirtySecFromNowUTC.format('YYYY-MM-DD HH:mm:ss');
+  const thirtySecFromNowMySQL = thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss');
 
   const findQuery = `
     SELECT mi.intake_id, mi.scheduled_at, mi.medicine_course_id,
@@ -222,8 +215,6 @@ const setIntakeIn30Sec = (req, res) => {
             course_id: intake.course_id,
             old_scheduled_at: oldScheduledAt,
             new_scheduled_at: updatedScheduledAtIST,
-            new_scheduled_at_ist: thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
-            new_scheduled_at_raw_utc: fetchResults[0].scheduled_at,
             updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
           };
 
@@ -250,8 +241,7 @@ const setIntakeIn30SecMultiple = (req, res) => {
 
   const today = moment().format('YYYY-MM-DD');
   const thirtySecFromNowIST = moment().add(30, 'seconds');
-  const thirtySecFromNowUTC = thirtySecFromNowIST.clone().utc();
-  const thirtySecFromNowMySQL = thirtySecFromNowUTC.format('YYYY-MM-DD HH:mm:ss');
+  const thirtySecFromNowMySQL = thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss');
 
   const findQuery = `
     SELECT mi.intake_id, mi.scheduled_at, mi.medicine_course_id,
@@ -332,8 +322,7 @@ const setIntakeIn30SecMultiple = (req, res) => {
                 course_id: intake.course_id,
                 old_scheduled_at: oldScheduledAt,
                 new_scheduled_at: updatedScheduledAtIST,
-                new_scheduled_at_ist: thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss'),
-                new_scheduled_at_raw_utc: fetchResults[0].scheduled_at
+                new_scheduled_at_ist: thirtySecFromNowIST.format('YYYY-MM-DD HH:mm:ss')
               });
             }
           );

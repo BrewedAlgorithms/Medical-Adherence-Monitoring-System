@@ -115,16 +115,16 @@ const newCourse = (req, res) => {
                             console.error(err);
                             anyIntakeErrors = true;
                           }
-                          
+
                           // Decrement pending count and check if all are done
                           pendingIntakeCreations--;
                           if (pendingIntakeCreations === 0) {
                             if (anyIntakeErrors) {
-                              res.status(201).json({ 
+                              res.status(201).json({
                                 message: "Course created with some errors in medicine intakes"
                               });
                             } else {
-                              res.status(201).json({ 
+                              res.status(201).json({
                                 message: "Course created successfully with all intakes"
                               });
                             }
@@ -135,8 +135,8 @@ const newCourse = (req, res) => {
                       // No intakes to create for this medicine
                       pendingIntakeCreations--;
                       if (pendingIntakeCreations === 0) {
-                        res.status(201).json({ 
-                          message: anyIntakeErrors 
+                        res.status(201).json({
+                          message: anyIntakeErrors
                             ? "Course created with some errors in medicine intakes"
                             : "Course created successfully with all intakes"
                         });
@@ -184,9 +184,9 @@ const getLast7DayMatrix = (req, res) => {
 
   // Get the current date and the date 7 days ago using moment with IST timezone
   const today = moment().endOf('day'); // End of today
-  
+
   const sevenDaysAgo = moment(today).subtract(6, 'days').startOf('day'); // Start of 7 days ago (including today)
-  
+
   const formattedToday = today.format('YYYY-MM-DD HH:mm:ss');
   const formattedSevenDaysAgo = sevenDaysAgo.format('YYYY-MM-DD HH:mm:ss');
 
@@ -208,30 +208,30 @@ const getLast7DayMatrix = (req, res) => {
       console.error(err);
       return res.status(500).json({ message: "Error fetching medication data" });
     }
-    
+
     // Initialize the result object with all 7 days
     const dayMatrix = {};
-    
+
     // Create entries for each of the last 7 days
     for (let i = 0; i < 7; i++) {
       const date = moment(today).subtract(i, 'days');
       const dateString = date.format('YYYY-MM-DD'); // YYYY-MM-DD format
-      dayMatrix[`day${7-i}`] = {
+      dayMatrix[`day${7 - i}`] = {
         date: dateString,
         total: 0,
         taken: 0,
         percentage: 0
       };
     }
-    
+
     // Process each medication intake
     results.forEach(intake => {
       const intakeDate = moment(intake.scheduled_at);
-      
+
       // Calculate which day this belongs to (1-7)
       const dayDiff = today.diff(intakeDate, 'days');
-      const dayKey = `day${7-dayDiff}`;
-      
+      const dayKey = `day${7 - dayDiff}`;
+
       // Only count if it's within our 7-day window
       if (dayDiff >= 0 && dayDiff < 7) {
         dayMatrix[dayKey].total++;
@@ -240,7 +240,7 @@ const getLast7DayMatrix = (req, res) => {
         }
       }
     });
-    
+
     // Calculate percentages
     for (let i = 1; i <= 7; i++) {
       const dayKey = `day${i}`;
@@ -250,14 +250,14 @@ const getLast7DayMatrix = (req, res) => {
         dayMatrix[dayKey].percentage = 0; // No medications scheduled for this day
       }
     }
-    
+
     // Convert to the simplified format requested in the comments
     const simplifiedMatrix = {};
     for (let i = 1; i <= 7; i++) {
       const dayKey = `day${i}`;
       simplifiedMatrix[dayKey] = dayMatrix[dayKey].percentage;
     }
-    
+
     res.status(200).json({
       adherenceMatrix: simplifiedMatrix,
       detailedMatrix: dayMatrix
@@ -269,7 +269,7 @@ const getLast7DayMatrix = (req, res) => {
 const getTodaysSchedule = (req, res) => {
   // Allow both query parameters and route parameters
   const user_id = req.body.user_id;
-  
+
   // Allow specifying a date, default to today in IST
   const dateStr = req.query.date || moment().format('YYYY-MM-DD');
 
@@ -301,16 +301,16 @@ const getTodaysSchedule = (req, res) => {
     let missedIntakes = 0;
     let upcomingIntakes = 0;
     let takeNowIntakes = 0;
-    
+
     const intakes = results.map(item => {
       // Convert scheduled_at to moment object in IST
       const scheduledTime = moment(item.scheduled_at);
-      
+
       // Add 30 minutes to scheduled time for TakeNow window
       const takeNowWindow = moment(scheduledTime).add(30, 'minutes');
-      
+
       let status = 'Upcoming';
-      
+
       if (item.taken_at) {
         status = 'Taken';
         takenIntakes++;
@@ -323,21 +323,21 @@ const getTodaysSchedule = (req, res) => {
       } else {
         upcomingIntakes++;
       }
-      
+
       return {
         intake_id: item.intake_id,
         medicine_name: item.medicine_name,
         medicine_course_id: item.medicine_course_id,
         course_id: item.course_id,
-        scheduled_at: scheduledTime.format(), // Format in ISO string with IST timezone
-        taken_at: item.taken_at ? moment(item.taken_at).format() : null,
+        scheduled_at: scheduledTime.format('YYYY-MM-DD HH:mm:ss'),
+        taken_at: item.taken_at ? moment(item.taken_at).format('YYYY-MM-DD HH:mm:ss') : null,
         status: status,
         timing: item.beforeafter === 0 ? 'Before meal' : 'After meal',
         medtype: item.medtype === '0' ? 'Pill' : 'Liquid',
         pillcount: 1
       };
     });
-    
+
     res.status(200).json({
       date: dateStr,
       total_intakes: results.length,
@@ -395,16 +395,16 @@ const getLifetimeMatrix = (req, res) => {
       console.error(err);
       return res.status(500).json({ message: "Error fetching lifetime medication data" });
     }
-    
+
     // Initialize counters and tracking objects
     const dateMatrix = {};
     let totalIntakes = 0;
     let takenIntakes = 0;
-    
+
     // Process each medication intake
     results.forEach(intake => {
       const dateString = intake.intake_date;
-      
+
       // Initialize the date entry if it doesn't exist
       if (!dateMatrix[dateString]) {
         dateMatrix[dateString] = {
@@ -414,36 +414,36 @@ const getLifetimeMatrix = (req, res) => {
           percentage: 0
         };
       }
-      
+
       // Update the date counts
       dateMatrix[dateString].total++;
       totalIntakes++;
-      
+
       if (intake.taken_at !== null) {
         dateMatrix[dateString].taken++;
         takenIntakes++;
       }
     });
-    
+
     // Calculate percentages for each date
     for (const date in dateMatrix) {
       if (dateMatrix[date].total > 0) {
         dateMatrix[date].percentage = Math.round((dateMatrix[date].taken / dateMatrix[date].total) * 100);
       }
     }
-    
+
     // Calculate overall adherence percentage
     const overallPercentage = totalIntakes > 0 ? Math.round((takenIntakes / totalIntakes) * 100) : 0;
-    
+
     // Get the first and last dates for the range
     const dates = Object.keys(dateMatrix).sort();
-    
+
     // Count days with perfect adherence (100%)
     const perfectDays = Object.values(dateMatrix).filter(day => day.percentage === 100 && day.total > 0).length;
-    
+
     // Count days with no adherence (0% but scheduled medications)
     const missedDays = Object.values(dateMatrix).filter(day => day.percentage === 0 && day.total > 0).length;
-    
+
     res.status(200).json({
       lifetimeAdherence: {
         overallPercentage,
@@ -460,11 +460,11 @@ const getLifetimeMatrix = (req, res) => {
 
 const getMedicationCourses = (req, res) => {
   const { user_id } = req.body;
-  
+
   if (!user_id) {
     return res.status(400).json({ message: "User ID is required" });
   }
-  
+
   // Query to get all courses and their associated medicine courses for the user
   const query = `
     SELECT 
@@ -490,23 +490,23 @@ const getMedicationCourses = (req, res) => {
     WHERE c.user_id = ?
     ORDER BY c.created_at DESC, mc.created_at ASC
   `;
-  
+
   connection.query(query, [user_id], (err, results) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ message: "Error fetching medication courses" });
     }
-    
+
     if (results.length === 0) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: "No medication courses found for this user",
-        courses: [] 
+        courses: []
       });
     }
-    
+
     // Process the results to group medicine courses by their parent course
     const coursesMap = {};
-    
+
     results.forEach(row => {
       // If this course hasn't been added to our map yet
       if (!coursesMap[row.course_id]) {
@@ -522,7 +522,7 @@ const getMedicationCourses = (req, res) => {
           medicine_courses: []
         };
       }
-      
+
       // Add this medicine course to the parent course if it exists
       if (row.medicine_course_id) {
         coursesMap[row.course_id].medicine_courses.push({
@@ -539,10 +539,10 @@ const getMedicationCourses = (req, res) => {
         });
       }
     });
-    
+
     // Convert the map to an array
     const courses = Object.values(coursesMap);
-    
+
     // Add adherence statistics for each medicine course
     const adherencePromises = courses.map(course => {
       return new Promise((resolve, reject) => {
@@ -557,7 +557,7 @@ const getMedicationCourses = (req, res) => {
               WHERE medicine_course_id = ?
               AND scheduled_at <= NOW()
             `;
-            
+
             connection.query(adherenceQuery, [medicine.medicine_course_id], (err, adherenceResults) => {
               if (err) {
                 console.error(err);
@@ -566,25 +566,25 @@ const getMedicationCourses = (req, res) => {
                 const totalIntakes = adherenceResults[0].total_intakes || 0;
                 const takenIntakes = adherenceResults[0].taken_intakes || 0;
                 const adherencePercentage = totalIntakes > 0 ? Math.round((takenIntakes / totalIntakes) * 100) : 0;
-                
+
                 medicine.adherence = {
                   total_intakes: totalIntakes,
                   taken_intakes: parseInt(takenIntakes),
                   percentage: adherencePercentage
                 };
-                
+
                 resolveInner();
               }
             });
           });
         });
-        
+
         Promise.all(medicinePromises)
           .then(() => resolve())
           .catch(err => reject(err));
       });
     });
-    
+
     // Wait for all adherence calculations to complete
     Promise.all(adherencePromises)
       .then(() => {
@@ -601,15 +601,15 @@ const getMedicationCourses = (req, res) => {
 
 const takeMedicine = (req, res) => {
   const { intake_id } = req.body;
-  
+
   if (!intake_id) {
     return res.status(400).json({ message: "Intake ID is required" });
   }
-  
+
   // Use moment.js for consistent timezone handling
   const currentTime = moment().format('YYYY-MM-DD HH:mm:ss');
   console.log(currentTime);
-  
+
   connection.query(
     "UPDATE MedicineIntakes SET taken_at = ? WHERE intake_id = ?",
     [currentTime, intake_id],
@@ -618,12 +618,12 @@ const takeMedicine = (req, res) => {
         console.error(err);
         return res.status(500).json({ message: "Error updating medication intake" });
       }
-      
+
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Intake not found" });
       }
-      
-      res.status(200).json({ 
+
+      res.status(200).json({
         message: "Medication marked as taken",
         taken_at: currentTime
       });
@@ -634,31 +634,31 @@ const takeMedicine = (req, res) => {
 const syncTodayIntake = (req, res) => {
   const { user_id } = req.body;
   const intakesData = req.body.intakes; // This should be a string in format "[[time, box nos], [time, box nos]]"
-  
+
   if (!user_id || !intakesData) {
     return res.status(400).json({ message: "User ID and intakes data are required" });
   }
-  
+
   try {
     // Parse the intakes data from string to actual 2D array
     const intakes = JSON.parse(intakesData);
-    
+
     if (!Array.isArray(intakes) || intakes.some(item => !Array.isArray(item) || item.length !== 2)) {
       return res.status(400).json({ message: "Invalid intakes format. Expected format: [[time, box nos], [time, box nos]]" });
     }
-    
+
     // Get today's date in YYYY-MM-DD format
     const today = moment().format('YYYY-MM-DD');
-    
+
     // Process each intake record
     const processIntakes = async () => {
       let successCount = 0;
       let errorCount = 0;
-      
+
       for (const [time, boxNos] of intakes) {
         // Format the time to match database format
         const scheduledTime = `${today} ${time}`;
-        
+
         // Update the corresponding medicine intakes
         connection.query(
           `UPDATE MedicineIntakes mi
@@ -677,7 +677,7 @@ const syncTodayIntake = (req, res) => {
             } else if (results.affectedRows > 0) {
               successCount++;
             }
-            
+
             // Check if all intakes have been processed
             if (successCount + errorCount === intakes.length) {
               return res.status(200).json({
@@ -690,9 +690,9 @@ const syncTodayIntake = (req, res) => {
         );
       }
     };
-    
+
     processIntakes();
-    
+
   } catch (error) {
     console.error("Error processing intakes data:", error);
     return res.status(500).json({ message: "Error processing intakes data" });
