@@ -1129,220 +1129,374 @@
 					"response": []
 				},
 				{
-				"name": "Get Prescription Draft",
-				"event": [
-					{
-						"listen": "test",
-						"script": {
-							"exec": [
-								"pm.test(\"Status code is 200\", function () {",
-								"    pm.response.to.have.status(200);",
-								"});",
-								"pm.test(\"Draft has expected fields\", function () {",
-								"    const json = pm.response.json();",
-								"    pm.expect(json).to.have.property('draft_id');",
-								"    pm.expect(json).to.have.property('status');",
-								"    pm.expect(json).to.have.property('extracted_data');",
-								"    pm.expect(json).to.have.property('image_url');",
-								"    pm.expect(json.status).to.equal('pending');",
-								"});"
-							],
-							"type": "text/javascript"
-						}
-					}
-				],
-				"request": {
-					"auth": {
-						"type": "bearer",
-						"bearer": [
-							{
-								"key": "token",
-								"value": "{{authToken}}",
-								"type": "string"
-							}
-						]
-					},
-					"method": "GET",
-					"header": [],
-					"url": {
-						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
-						"host": [
-							"{{base_url}}"
-						],
-						"path": [
-							"media",
-							"prescriptionDraft",
-							"{{draft_id}}"
-						]
-					},
-					"description": "[Phase 2 — Human Review] Fetch the pending draft to display AI-extracted data for human review. Uses draft_id stored by Upload Prescription."
-				},
-				"response": []
-			},
-			{
-				"name": "Update Prescription Draft (human corrections)",
-				"event": [
-					{
-						"listen": "test",
-						"script": {
-							"exec": [
-								"pm.test(\"Status code is 200\", function () {",
-								"    pm.response.to.have.status(200);",
-								"});",
-								"pm.test(\"Draft updated successfully\", function () {",
-								"    const json = pm.response.json();",
-								"    pm.expect(json.message).to.include('updated');",
-								"});"
-							],
-							"type": "text/javascript"
-						}
-					}
-				],
-				"request": {
-					"auth": {
-						"type": "bearer",
-						"bearer": [
-							{
-								"key": "token",
-								"value": "{{authToken}}",
-								"type": "string"
-							}
-						]
-					},
-					"method": "PUT",
-					"header": [
+					"name": "Get Prescription Draft",
+					"event": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Draft has expected fields\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('draft_id');",
+									"    pm.expect(json).to.have.property('status');",
+									"    pm.expect(json).to.have.property('extracted_data');",
+									"    pm.expect(json).to.have.property('image_url');",
+									"    pm.expect(json.status).to.equal('pending');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
 						}
 					],
-					"body": {
-						"mode": "raw",
-						"raw": "{\n    \"extracted_data\": {\n        \"doctor_id\": 1,\n        \"start_date\": \"2026-02-27\",\n        \"end_date\": \"2026-03-06\",\n        \"medicineCourses\": [\n            {\n                \"medicine_name\": \"CORRECTED_NAME\",\n                \"start_date\": \"2026-02-27\",\n                \"end_date\": \"2026-03-06\",\n                \"frequency\": \"1010\",\n                \"medtype\": \"1\",\n                \"is_pill\": true,\n                \"dosage\": 8\n            }\n        ]\n    }\n}"
-					},
-					"url": {
-						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
-						"host": [
-							"{{base_url}}"
-						],
-						"path": [
-							"media",
-							"prescriptionDraft",
-							"{{draft_id}}"
-						]
-					},
-					"description": "[Phase 2 — Human Review] Save human corrections to the extracted_data. Send the FULL extracted_data JSON with your corrections applied. Only works on 'pending' drafts."
-				},
-				"response": []
-			},
-			{
-				"name": "Confirm Prescription Draft (Phase 2 — commits to DB)",
-				"event": [
-					{
-						"listen": "test",
-						"script": {
-							"exec": [
-								"pm.test(\"Status code is 201\", function () {",
-								"    pm.response.to.have.status(201);",
-								"});",
-								"pm.test(\"Response has course_id and intake counts\", function () {",
-								"    const json = pm.response.json();",
-								"    pm.expect(json).to.have.property('course_id');",
-								"    pm.expect(json).to.have.property('medicines_created');",
-								"    pm.expect(json).to.have.property('intakes_created');",
-								"});",
-								"if (pm.response.code === 201) {",
-								"    const json = pm.response.json();",
-								"    if (json.course_id) {",
-								"        pm.collectionVariables.set('course_id', json.course_id);",
-								"        console.log('Course ID stored:', json.course_id);",
-								"        console.log('Medicines created:', json.medicines_created);",
-								"        console.log('Intakes created:', json.intakes_created);",
-								"    }",
-								"}"
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
+							"host": [
+								"{{base_url}}"
 							],
-							"type": "text/javascript"
-						}
-					}
-				],
-				"request": {
-					"auth": {
-						"type": "bearer",
-						"bearer": [
-							{
-								"key": "token",
-								"value": "{{authToken}}",
-								"type": "string"
-							}
-						]
+							"path": [
+								"media",
+								"prescriptionDraft",
+								"{{draft_id}}"
+							]
+						},
+						"description": "[Phase 2 — Human Review] Fetch the pending draft to display AI-extracted data for human review. Uses draft_id stored by Upload Prescription."
 					},
-					"method": "POST",
-					"header": [],
-					"url": {
-						"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}/confirm",
-						"host": [
-							"{{base_url}}"
-						],
-						"path": [
-							"media",
-							"prescriptionDraft",
-							"{{draft_id}}",
-							"confirm"
-						]
-					},
-					"description": "[Phase 2 — Confirm] Human has reviewed the draft. This triggers the real DB transaction: inserts Courses, MedicineCourses, MedicineIntakes and marks draft as 'confirmed'. Returns course_id which is auto-stored in collection variables."
+					"response": []
 				},
-				"response": []
+				{
+					"name": "Update Prescription Draft (human corrections)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Draft updated successfully\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.message).to.include('updated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"extracted_data\": {\n        \"doctor_id\": 1,\n        \"start_date\": \"2026-02-27\",\n        \"end_date\": \"2026-03-06\",\n        \"medicineCourses\": [\n            {\n                \"medicine_name\": \"CORRECTED_NAME\",\n                \"start_date\": \"2026-02-27\",\n                \"end_date\": \"2026-03-06\",\n                \"frequency\": \"1010\",\n                \"medtype\": \"1\",\n                \"is_pill\": true,\n                \"dosage\": 8\n            }\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"media",
+								"prescriptionDraft",
+								"{{draft_id}}"
+							]
+						},
+						"description": "[Phase 2 — Human Review] Save human corrections to the extracted_data. Send the FULL extracted_data JSON with your corrections applied. Only works on 'pending' drafts."
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Prescription Draft (Phase 2 — commits to DB)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response has course_id and intake counts\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('course_id');",
+									"    pm.expect(json).to.have.property('medicines_created');",
+									"    pm.expect(json).to.have.property('intakes_created');",
+									"});",
+									"if (pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    if (json.course_id) {",
+									"        pm.collectionVariables.set('course_id', json.course_id);",
+									"        console.log('Course ID stored:', json.course_id);",
+									"        console.log('Medicines created:', json.medicines_created);",
+									"        console.log('Intakes created:', json.intakes_created);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/media/prescriptionDraft/{{draft_id}}/confirm",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"media",
+								"prescriptionDraft",
+								"{{draft_id}}",
+								"confirm"
+							]
+						},
+						"description": "[Phase 2 — Confirm] Human has reviewed the draft. This triggers the real DB transaction: inserts Courses, MedicineCourses, MedicineIntakes and marks draft as 'confirmed'. Returns course_id which is auto-stored in collection variables."
+					},
+					"response": []
+				}
+			],
+			"description": "Media upload endpoints for prescriptions (human-in-the-loop draft flow) and voice notes"
+		},
+		{
+			"name": "Dev Tools",
+			"item": [
+				{
+					"name": "Delete All Courses (DELETE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has deletion count\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('courses_deleted');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/delete-all-courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"delete-all-courses"
+							]
+						},
+						"description": "[DEV ONLY] Delete ALL courses and cascade-delete related records (MedicineCourses, MedicineIntakes). No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete All Courses (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has deletion count\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('courses_deleted');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/delete-all-courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"delete-all-courses"
+							]
+						},
+						"description": "[DEV ONLY] GET alias for Delete All Courses. Same behavior as the DELETE method — deletes ALL courses and cascade-deletes related records. No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Set Intake In 1 Min (POST)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has intake details\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('intake_id');",
+									"    pm.expect(json).to.have.property('medicine_name');",
+									"    pm.expect(json).to.have.property('new_scheduled_at');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/intake-in-1min",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"intake-in-1min"
+							]
+						},
+						"description": "[DEV ONLY] Reschedule the first upcoming intake for today to 1 minute from now. Useful for testing notifications. Also reloads the notification buffer. No authentication required."
+					},
+					"response": []
+				},
+				{
+					"name": "Set Intake In 1 Min (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has intake details\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('intake_id');",
+									"    pm.expect(json).to.have.property('medicine_name');",
+									"    pm.expect(json).to.have.property('new_scheduled_at');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dev/intake-in-1min",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dev",
+								"intake-in-1min"
+							]
+						},
+						"description": "[DEV ONLY] GET alias for Set Intake In 1 Min. Same behavior as the POST method. No authentication required."
+					},
+					"response": []
+				}
+			],
+			"description": "Development-only endpoints for testing. These do NOT require authentication and should NOT be used in production."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
 			}
-		],
-		"description": "Media upload endpoints for prescriptions (human-in-the-loop draft flow) and voice notes"
-	}
-],
-"event": [
-	{
-		"listen": "prerequest",
-		"script": {
-			"type": "text/javascript",
-			"exec": [
-				""
-			]
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
 		}
-	},
-	{
-		"listen": "test",
-		"script": {
-			"type": "text/javascript",
-			"exec": [
-				""
-			]
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3001",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "course_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "draft_id",
+			"value": "",
+			"type": "string"
 		}
-	}
-],
-"variable": [
-	{
-		"key": "base_url",
-		"value": "http://localhost:3001",
-		"type": "string"
-	},
-	{
-		"key": "authToken",
-		"value": "",
-		"type": "string"
-	},
-	{
-		"key": "userId",
-		"value": "",
-		"type": "string"
-	},
-	{
-		"key": "course_id",
-		"value": "",
-		"type": "string"
-	},
-	{
-		"key": "draft_id",
-		"value": "",
-		"type": "string"
-	}
-]
+	]
 }
