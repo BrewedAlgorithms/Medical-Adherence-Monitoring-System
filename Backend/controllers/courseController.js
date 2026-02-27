@@ -277,9 +277,9 @@ const getTodaysSchedule = (req, res) => {
     return res.status(400).json({ message: "User ID is required" });
   }
 
-  // Get current time for status determination in IST
-  const now = moment();
-  console.log(now.format()); // Logs IST time in a readable format
+  // Get current time in UTC (matches how mysql driver interprets DB datetimes)
+  const now = moment.utc();
+  console.log(now.format('YYYY-MM-DD HH:mm:ss')); // Logs time for debugging
 
   // Query to get medication intakes for the specified user on the requested date
   const query = `SELECT mi.intake_id, mc.medicine_course_id, mc.course_id, mc.medicine_name, 
@@ -303,11 +303,11 @@ const getTodaysSchedule = (req, res) => {
     let takeNowIntakes = 0;
 
     const intakes = results.map(item => {
-      // Convert scheduled_at to moment object in IST
-      const scheduledTime = moment(item.scheduled_at);
+      // Use moment.utc to get raw DB time without timezone conversion
+      const scheduledTime = moment.utc(item.scheduled_at);
 
       // Add 30 minutes to scheduled time for TakeNow window
-      const takeNowWindow = moment(scheduledTime).add(30, 'minutes');
+      const takeNowWindow = moment.utc(scheduledTime).add(30, 'minutes');
 
       let status = 'Upcoming';
 
