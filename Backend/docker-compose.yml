@@ -38,7 +38,7 @@ services:
 
   db:
     image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password --lower-case-table-names=1
     ports:
       - "3306:3306"
     environment:
@@ -51,7 +51,7 @@ services:
       - ./main.sql:/docker-entrypoint-initdb.d/01-main.sql
       - ./database_optimization.sql:/docker-entrypoint-initdb.d/02-optimization.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword" ]
       interval: 5s
       timeout: 3s
       retries: 10
