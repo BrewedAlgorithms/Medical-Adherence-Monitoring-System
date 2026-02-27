@@ -121,7 +121,7 @@ const migrations = [
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
   )`,
   // Add pill_stock column to existing MedicineCourses tables
-  `ALTER TABLE MedicineCourses ADD COLUMN IF NOT EXISTS pill_stock INT NOT NULL DEFAULT 0 AFTER medtype`,
+  `ALTER TABLE MedicineCourses ADD COLUMN pill_stock INT NOT NULL DEFAULT 0 AFTER medtype`,
 ];
 
 
@@ -131,8 +131,17 @@ async function runMigrations() {
     for (const sql of migrations) {
       await new Promise((resolve, reject) => {
         connection.query(sql, (err) => {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            // Ignore duplicate column error for ALTER TABLE migrations
+            if (err.code === 'ER_DUP_FIELDNAME') {
+              console.log('Column already exists, skipping...');
+              resolve();
+            } else {
+              reject(err);
+            }
+          } else {
+            resolve();
+          }
         });
       });
     }
