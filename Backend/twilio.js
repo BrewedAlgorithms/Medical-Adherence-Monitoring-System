@@ -1,11 +1,19 @@
 const twilio = require('twilio');
 require('dotenv').config();
 
-// Twilio configuration - only initialize if credentials are provided
+// Twilio configuration - initialize with graceful error handling
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const hasValidTwilio = accountSid && authToken;
-const client = hasValidTwilio ? new twilio(accountSid, authToken) : null;
+let client = null;
+if (accountSid && authToken) {
+    try {
+        client = new twilio(accountSid, authToken);
+        console.log('Twilio client initialized successfully');
+    } catch (err) {
+        console.warn('⚠️ Twilio init failed:', err.message);
+        console.warn('Notifications will be skipped. Fix TWILIO_ACCOUNT_SID (must start with AC) and restart.');
+    }
+}
 
 /**
  * Sends a WhatsApp message via Twilio
