@@ -27,7 +27,7 @@ const sendMessage = async (msg, phone) => {
         console.log('Twilio not configured (missing/invalid credentials). Skipping SMS to', phone);
         return;
     }
-    const destinationNumber = process.env.DEV_TWILIO_DEF_TO || process.env.TWILIO_PHONE_NUMBER;
+    const destinationNumber = process.env.TWILIO_PHONE_NUMBER;
     console.log(`Sending WhatsApp message to ${destinationNumber} (context: ${phone})`);
     try {
         const message = await client.messages.create({
