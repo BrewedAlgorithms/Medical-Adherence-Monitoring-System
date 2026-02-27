@@ -8,7 +8,7 @@ const { broadcastMessage, registerMessageHandler } = require('../socket.js');
 let todaysIntakes = [];
 
 // Pre-computed batches for the day
-let scheduledBatches = new Map(); // key: 'HH:MM', value: array of intake indices
+let scheduledBatches = new Map(); // key: 'HH:MM:SS', value: array of intake indices
 
 // Global variable to store the current box to intake mapping
 let currentBoxToIntakeMapping = {};
@@ -30,14 +30,14 @@ registerMessageHandler((message, sender) => {
   // Check if this is a response to our medicine notification
   if (Array.isArray(message) && message.length) {
     console.log(`Received response array from client ${sender.id}:`, JSON.stringify(message));
-    
+
     // Process responses - each number represents a box/intake that was taken
     message.forEach(boxNumber => {
       const intakeId = currentBoxToIntakeMapping[boxNumber];
       if (intakeId) {
         console.log(`Box ${boxNumber} was taken, corresponding to intake_id ${intakeId}`);
         markIntakeAsTaken(intakeId);
-        
+
         // Remove from active notifications since it's been taken
         if (activeNotifications.has(intakeId)) {
           activeNotifications.delete(intakeId);
@@ -46,7 +46,7 @@ registerMessageHandler((message, sender) => {
         console.log(`Received unknown box number: ${boxNumber}`);
       }
     });
-    
+
     return true; // Message handled
   }
   return false; // Not handled by this handler
@@ -63,7 +63,7 @@ const markIntakeAsTaken = (intakeId) => {
         return;
       }
       console.log(`Marked intake ${intakeId} as taken`);
-      
+
       // Remove this intake from today's intakes to avoid duplicate notifications
       const intakeIndex = todaysIntakes.findIndex(intake => intake.intake_id === intakeId);
       if (intakeIndex !== -1) {
@@ -82,11 +82,11 @@ const markIntakeAsTaken = (intakeId) => {
             break;
           }
         }
-        
+
         // Mark the intake as taken in the in-memory array
         todaysIntakes[intakeIndex].taken_at = new Date();
       }
-      
+
       // Remove from box mapping
       for (const [boxNum, id] of Object.entries(currentBoxToIntakeMapping)) {
         if (id === intakeId) {
@@ -101,8 +101,8 @@ const markIntakeAsTaken = (intakeId) => {
 // Function to check if it's time to take medicine
 const checkIntakeTimes = () => {
   const now = new Date();
-  const timeKey = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  
+  const timeKey = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
   // Check if we have a batch scheduled for this exact time
   if (scheduledBatches.has(timeKey)) {
     const batchIndices = scheduledBatches.get(timeKey);
@@ -112,7 +112,7 @@ const checkIntakeTimes = () => {
       scheduledBatches.delete(timeKey);
     }
   }
-  
+
   // Check for expired notifications that need to be cleared
   checkExpiredNotifications();
 };
@@ -121,19 +121,19 @@ const checkIntakeTimes = () => {
 const checkExpiredNotifications = () => {
   const now = Date.now();
   const expiredIntakeIds = [];
-  
+
   // Find all notifications that have expired
   for (const [intakeId, data] of activeNotifications.entries()) {
     if (now - data.timestamp >= NOTIFICATION_TIMEOUT_MS) {
       expiredIntakeIds.push(intakeId);
-      
+
       // Remove from box mapping
       const boxNum = data.boxNumber;
       if (currentBoxToIntakeMapping[boxNum] === intakeId) {
         console.log(`Box ${boxNum} for intake_id ${intakeId} expired after 30 minutes. Clearing mapping.`);
         delete currentBoxToIntakeMapping[boxNum];
       }
-      
+
       // Send reminder SMS for missed medication
       const intakeIndex = todaysIntakes.findIndex(intake => intake.intake_id === intakeId);
       if (intakeIndex !== -1) {
@@ -143,11 +143,11 @@ const checkExpiredNotifications = () => {
       }
     }
   }
-  
+
   // Delete all expired notifications
   expiredIntakeIds.forEach(id => {
     activeNotifications.delete(id);
-    
+
     // Find the intake in todaysIntakes and mark it as missed
     const intakeIndex = todaysIntakes.findIndex(intake => intake.intake_id === id);
     if (intakeIndex !== -1) {
@@ -155,7 +155,7 @@ const checkExpiredNotifications = () => {
       console.log(`Marking intake_id ${id} as missed after 30 minute timeout`);
     }
   });
-  
+
   // If we removed some box mappings and our current mapping is now empty, print a message
   if (expiredIntakeIds.length > 0 && Object.keys(currentBoxToIntakeMapping).length === 0) {
     console.log('All active box mappings have been cleared due to timeout');
@@ -170,25 +170,25 @@ const sendNotificationForBatch = (indices) => {
     console.log('No boxes are enabled, cannot send notifications');
     return;
   }
-  
+
   // Process in chunks of effectiveBatchSize
   for (let i = 0; i < indices.length; i += effectiveBatchSize) {
     const currentBatchIndices = indices.slice(i, i + effectiveBatchSize);
-    
+
     // Mark these intakes as notified to avoid duplicate notifications
     currentBatchIndices.forEach(index => {
       if (index < todaysIntakes.length) {
         todaysIntakes[index].notified = true;
       }
     });
-    
+
     // Get intake IDs for the current batch
     const intakeIds = currentBatchIndices
       .filter(index => index < todaysIntakes.length)
       .map(index => todaysIntakes[index].intake_id);
-    
+
     if (intakeIds.length === 0) continue;
-    
+
     // Send notification with delay for subsequent batches
     setTimeout(() => {
       sendMedicineNotification(intakeIds);
@@ -210,44 +210,44 @@ const sendMedicineNotification = (intakeIds) => {
         console.error('Error fetching medicine details:', err);
         return;
       }
-      
+
       // Create array of box numbers (zero-based index for the UI)
       const boxNumbers = [];
-      
+
       // Reset the current mapping
       currentBoxToIntakeMapping = {};
-      
+
       // Current timestamp for tracking expirations
       const now = Date.now();
-      
+
       // Create the mapping and prepare the notification array
       // Only use enabled boxes
       let enabledBoxIndex = 0;
       results.forEach((medicine, i) => {
         // If we've used all enabled boxes, stop processing
         if (enabledBoxIndex >= ENABLED_BOXES.length) return;
-        
+
         const boxNum = ENABLED_BOXES[enabledBoxIndex++];
         boxNumbers.push(boxNum);
-        
+
         // Store mapping
         currentBoxToIntakeMapping[boxNum] = medicine.intake_id;
-        
+
         // Track this notification with timestamp for timeout
         activeNotifications.set(medicine.intake_id, {
           timestamp: now,
           boxNumber: boxNum
         });
-        
+
         // Log the mapping
         const beforeAfter = medicine.beforeafter ? 'after' : 'before';
         console.log(`Box ${boxNum} mapped to intake_id ${medicine.intake_id}: ${medicine.medicine_name} (${beforeAfter} meal)`);
-        
+
         // Send SMS notification for this medicine
         const smsMessage = `Time to take ${medicine.medicine_name} ${beforeAfter} meal. Please take from box ${boxNum}.`;
         sendMessage(smsMessage, PHONE_NUMBER);
       });
-      
+
       // Send notification with the box numbers (for app/socket notification)
       console.log(`Broadcasting medicine intake notification: ${JSON.stringify(boxNumbers)}`);
       broadcastMessage(JSON.stringify(boxNumbers));
@@ -259,28 +259,28 @@ const sendMedicineNotification = (intakeIds) => {
 const preComputeBatches = () => {
   // Clear existing batches
   scheduledBatches.clear();
-  
-  // Group intakes by their scheduled time (HH:MM)
+
+  // Group intakes by their scheduled time (HH:MM:SS)
   todaysIntakes.forEach((intake, index) => {
     if (intake.taken_at) return; // Skip intakes that have already been taken
-    
+
     const scheduledTime = new Date(intake.scheduled_at);
-    const timeKey = `${scheduledTime.getHours().toString().padStart(2, '0')}:${scheduledTime.getMinutes().toString().padStart(2, '0')}`;
-    
+    const timeKey = `${scheduledTime.getHours().toString().padStart(2, '0')}:${scheduledTime.getMinutes().toString().padStart(2, '0')}:${scheduledTime.getSeconds().toString().padStart(2, '0')}`;
+
     // Add to the appropriate batch
     if (!scheduledBatches.has(timeKey)) {
       scheduledBatches.set(timeKey, []);
     }
     scheduledBatches.get(timeKey).push(index);
   });
-  
+
   console.log(`Pre-computed ${scheduledBatches.size} batches for today's schedule`);
 };
 
 // Function to load today's intakes into the buffer and prepare batches with retry logic
 const loadTodaysIntakes = async (maxRetries = 5) => {
   let lastError;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const results = await new Promise((resolve, reject) => {
@@ -300,24 +300,24 @@ const loadTodaysIntakes = async (maxRetries = 5) => {
           }
         );
       });
-      
+
       // Reset the buffer with new data
       todaysIntakes = results.map(intake => ({
         ...intake,
         notified: false, // Add a flag to track if we've notified for this intake
         missed: false    // Add a flag to track if this intake was missed (timed out)
       }));
-      
+
       console.log(`Loaded ${todaysIntakes.length} intakes for today`);
       console.log(`Using ${ENABLED_BOXES.length} enabled boxes: ${ENABLED_BOXES.join(', ')}`);
-      
+
       // Clear any active notifications
       activeNotifications.clear();
       currentBoxToIntakeMapping = {};
-      
+
       // Pre-compute the batches right after loading intakes
       preComputeBatches();
-      
+
       return todaysIntakes;
     } catch (err) {
       lastError = err;
@@ -333,7 +333,7 @@ const loadTodaysIntakes = async (maxRetries = 5) => {
       throw err;
     }
   }
-  
+
   // If we get here, all retries failed
   throw lastError;
 };
@@ -353,24 +353,24 @@ const refreshIntakes = async () => {
         }
       );
     });
-    
+
     // Mark those intakes as taken in our local cache
     const takenIds = new Set(takenIntakes.map(i => i.intake_id));
     let changed = false;
-    
+
     todaysIntakes.forEach((intake, index) => {
       if (takenIds.has(intake.intake_id) && !intake.taken_at) {
         intake.taken_at = new Date(); // Mark as taken
         intake.notified = true;
         changed = true;
-        
+
         // Remove from active notifications if it was being tracked
         if (activeNotifications.has(intake.intake_id)) {
           activeNotifications.delete(intake.intake_id);
         }
       }
     });
-    
+
     // Check for new intakes
     const newIntakes = await new Promise((resolve, reject) => {
       const existingIds = todaysIntakes.map(i => i.intake_id);
@@ -388,7 +388,7 @@ const refreshIntakes = async () => {
         }
       );
     });
-    
+
     // Add new intakes to our cache
     if (newIntakes.length > 0) {
       todaysIntakes = [
@@ -401,12 +401,12 @@ const refreshIntakes = async () => {
       ];
       changed = true;
     }
-    
+
     // If anything changed, recompute batches
     if (changed) {
       preComputeBatches();
     }
-    
+
     return todaysIntakes;
   } catch (err) {
     console.error('Error refreshing intakes:', err);
@@ -417,23 +417,23 @@ const refreshIntakes = async () => {
 // Generate a report of missed medications
 const generateMissedMedicationsReport = () => {
   // Find all intakes that were notified but not taken
-  const missedIntakes = todaysIntakes.filter(intake => 
+  const missedIntakes = todaysIntakes.filter(intake =>
     (intake.notified || intake.missed) && !intake.taken_at
   );
-  
+
   if (missedIntakes.length > 0) {
     console.log(`=== MISSED MEDICATIONS REPORT (${new Date().toLocaleString()}) ===`);
-    
+
     // Prepare SMS message with missed medications
     let missedMedsMessage = "Daily medication report - Missed medications:\n";
-    
+
     missedIntakes.forEach(intake => {
       const time = new Date(intake.scheduled_at).toLocaleTimeString();
       console.log(`- ${intake.medicine_name}: Scheduled for ${time}`);
       missedMedsMessage += `- ${intake.medicine_name}: Scheduled for ${time}\n`;
     });
     console.log('=== END OF REPORT ===');
-    
+
     // Send the report via SMS
     sendMessage(missedMedsMessage, PHONE_NUMBER);
   }
@@ -446,11 +446,11 @@ const setEnabledBoxes = (boxArray) => {
     console.error('Invalid box array, must be a non-empty array of box numbers');
     return false;
   }
-  
+
   // Update the enabled boxes
   ENABLED_BOXES.length = 0; // Clear the array
   boxArray.forEach(boxNum => ENABLED_BOXES.push(boxNum)); // Add new values
-  
+
   console.log(`Updated enabled boxes: ${ENABLED_BOXES.join(', ')}`);
   return true;
 };
@@ -461,7 +461,7 @@ const setPhoneNumber = (phoneNum) => {
     console.error('Invalid phone number format. Must be E.164 format.');
     return false;
   }
-  
+
   // Update the phone number constant
   PHONE_NUMBER = phoneNum;
   console.log(`Updated phone number to: ${PHONE_NUMBER}`);
@@ -471,10 +471,10 @@ const setPhoneNumber = (phoneNum) => {
 // Schedule the daily refresh of the buffer at midnight
 cron.schedule('0 0 * * *', async () => {
   console.log('Midnight: Refreshing today\'s medicine schedule');
-  
+
   // Generate report of yesterday's missed medications before refreshing
   generateMissedMedicationsReport();
-  
+
   await loadTodaysIntakes();
 });
 
@@ -484,8 +484,8 @@ cron.schedule('0 12 * * *', async () => {
   await refreshIntakes();
 });
 
-// Check intake times every minute
-cron.schedule('* * * * *', () => {
+// Check intake times every second
+cron.schedule('* * * * * *', () => {
   checkIntakeTimes();
 });
 
@@ -502,8 +502,8 @@ cron.schedule('* * * * *', () => {
   }
 })();
 
-module.exports = { 
-  loadTodaysIntakes, 
+module.exports = {
+  loadTodaysIntakes,
   refreshIntakes,
   checkIntakeTimes,
   generateMissedMedicationsReport,
