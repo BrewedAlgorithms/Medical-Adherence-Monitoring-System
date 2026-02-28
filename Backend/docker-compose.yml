@@ -37,6 +37,24 @@ services:
       - "../AI Layer/Prescription Extraction Service/.env"
     restart: unless-stopped
 
+  ai_assistant:
+    build:
+      context: "../AI Layer/AI Assistent Service"
+    ports:
+      - "3003:3003"
+    env_file:
+      - "../AI Layer/AI Assistent Service/.env"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=HealthMobi
+      - PORT=3003
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   db:
     image: mysql:8.0
     command: --default-authentication-plugin=mysql_native_password --lower-case-table-names=1

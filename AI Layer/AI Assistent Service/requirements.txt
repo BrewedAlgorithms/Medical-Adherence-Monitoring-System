@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+mysql-connector-python
+langchain-core
+langchain-openai
+langgraph
+openai
