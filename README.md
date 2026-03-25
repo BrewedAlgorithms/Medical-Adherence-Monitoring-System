@@ -5,12 +5,6 @@ A patient-centric medication adherence ecosystem that empowers patients by:
 - Enabling seamless tracking of their progress.
 - Delivering personalized motivation and support to ensure consistent medication adherence.
 
-> **💻 Developed by Gameis Alice Team from PICT College**
-- PRAJWAL CHINCHMALATPURE
-- DURGESH KHADE
-- PARAS THAKUR
-- NEHA DIWAN
-
 ## ✨ Key Features
 
 - **🔐 Authentication System**: Secure phone-based OTP authentication
